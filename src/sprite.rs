@@ -32,7 +32,7 @@ impl<'a, 'w> SpriteContext<'a, 'w> {
         }
     }
     
-    pub fn sprite(&mut self, image: &Handle<Image>, x: f32, y: f32) {
+    pub fn draw(&mut self, image: &Handle<Image>, x: f32, y: f32) {
         self.queue.0.push(SpriteCommand {
             image: image.clone(),
             position: Vec2::new(x, y),
@@ -42,7 +42,7 @@ impl<'a, 'w> SpriteContext<'a, 'w> {
     }
 
     /// Draw a scaled or tinted sprite
-    pub fn sprite_ext(&mut self, image: &Handle<Image>, x: f32, y: f32, scale: f32, color: Color) {
+    pub fn draw_ext(&mut self, image: &Handle<Image>, x: f32, y: f32, scale: f32, color: Color) {
         self.queue.0.push(SpriteCommand {
             image: image.clone(),
             position: Vec2::new(x, y),
