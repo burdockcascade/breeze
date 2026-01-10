@@ -9,7 +9,7 @@ It completely abstracts away the Entity Component System (ECS). Instead of manag
 ## Why use it?
 - No ECS Required: Write standard Rust code. No need to learn Queries, Commands, or Bundles.
 - Immediate Mode API: Draw sprites, shapes, and text with a single function call every frame (e.g., ctx.draw.sprite(...)).
-- Batteries Included: Windowing, Input, Audio, and 2D Physics/Collision preparation are all unified into a single Context.
+- Batteries Included: Windowing, Input, and Audio are all unified into a single Context.
 - Powered by Bevy: Underneath the simple API is the industrial-strength Bevy engine, giving you performance and reliability without the boilerplate.
 
 ## Current State
