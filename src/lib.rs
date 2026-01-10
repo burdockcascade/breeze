@@ -38,6 +38,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
         .insert_resource(SpriteQueue::default())
         .insert_resource(AudioQueue::default())
         .insert_resource(ActiveLoops::default())
+        .insert_resource(ClearColor(Color::BLACK))
         .insert_non_send_resource(game)
         .add_systems(Startup, setup_camera)
         .add_systems(Update, (

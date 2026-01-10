@@ -43,11 +43,19 @@ pub struct DrawContext<'a, 'w, 's> {
     pub shapes: ShapeContext<'a, 'w, 's>,
     pub text: TextContext<'a, 'w>,
     pub sprites: SpriteContext<'a, 'w>,
+    pub(crate) clear_color: &'a mut ClearColor,
+}
+
+impl <'a, 'w, 's> DrawContext<'a, 'w, 's> {
+    /// Set the background clear color for the next frame
+    pub fn clear_background(&mut self, color: Color) {
+        self.clear_color.0 = color;
+    }
 }
 
 pub trait Game: Send + Sync + 'static {
     fn init(&mut self, _ctx: &mut Context) {}
-    fn update(&mut self, ctx: &mut Context);
+    fn update(&mut self, _ctx: &mut Context) {}
     fn draw(&mut self, ctx: &mut DrawContext);
 }
 
@@ -76,6 +84,9 @@ pub struct EngineContext<'w, 's> {
     // Window / Camera (for mouse calculation)
     pub q_window: Query<'w, 's, &'static Window, With<PrimaryWindow>>,
     pub q_camera: Query<'w, 's, (&'static Camera, &'static GlobalTransform), With<Camera2d>>,
+
+    // Clear Color
+    pub clear_color: ResMut<'w, ClearColor>,
 
 }
 
@@ -122,6 +133,7 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
             shapes: ShapeContext::new(&mut engine.painter),
             text: TextContext::new(&mut engine.text_queue),
             sprites: SpriteContext::new(&mut engine.sprite_queue, &engine.asset_server),
+            clear_color: &mut engine.clear_color,
         };
         game.draw(&mut draw_ctx);
     }
