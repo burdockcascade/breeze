@@ -17,7 +17,7 @@ Breeze is in early development. The core immediate-mode drawing API is functiona
 
 ## Example
 ```rust
-use Breeze::prelude::*;
+use breeze::prelude::*;
 
 struct MyGame {
     time: f32,
