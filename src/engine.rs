@@ -1,5 +1,7 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use bevy_vector_shapes::painter::ShapePainter;
+use crate::shapes::ShapeContext;
 
 pub struct AppConfig {
     pub title: String,
@@ -21,8 +23,9 @@ pub struct Context<'a> {
     pub time: &'a Time,
 }
 
-pub struct DrawContext<'a> {
+pub struct DrawContext<'a, 'w, 's> {
     pub time: &'a Time,
+    pub shapes: ShapeContext<'a, 'w, 's>,
 }
 
 pub trait Game: Send + Sync + 'static {
@@ -35,14 +38,17 @@ pub trait Game: Send + Sync + 'static {
 pub struct InternalState { initialized: bool }
 
 #[derive(SystemParam)]
-pub struct EngineContext<'w> {
+pub struct EngineContext<'w, 's> {
 
     // Core
-    pub time: Res<'w, Time>
+    pub time: Res<'w, Time>,
+
+    // Graphics
+    pub painter: ShapePainter<'w, 's>,
 
 }
 
-pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, engine: EngineContext, mut state: Local<InternalState>) {
+pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineContext, mut state: Local<InternalState>) {
 
     // --- UPDATE STEP ---
     {
@@ -62,6 +68,7 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, engine: EngineContex
     {
         let mut draw_ctx = DrawContext {
             time: &engine.time,
+            shapes: ShapeContext::new(&mut engine.painter),
         };
         game.draw(&mut draw_ctx);
     }
