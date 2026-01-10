@@ -1,0 +1,31 @@
+name: Build Examples
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build Examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwayland-dev libxkbcommon-dev libasound2-dev libudev-dev
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --examples --verbose
