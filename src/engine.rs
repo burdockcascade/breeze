@@ -2,6 +2,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_vector_shapes::painter::ShapePainter;
+use crate::audio::{AudioContext, AudioQueue};
 use crate::input::InputContext;
 use crate::shapes::ShapeContext;
 use crate::sprite::{SpriteContext, SpriteQueue};
@@ -27,6 +28,7 @@ pub struct Context<'a> {
     pub time: &'a Time,
     pub input: InputContext<'a>,
     pub asset_server: &'a AssetServer,
+    pub audio: AudioContext<'a>,
 }
 
 impl<'a> Context<'a> {
@@ -65,6 +67,7 @@ pub struct EngineContext<'w, 's> {
     // Queues
     pub text_queue: ResMut<'w, TextQueue>,
     pub sprite_queue: ResMut<'w, SpriteQueue>,
+    pub audio_queue: ResMut<'w, AudioQueue>,
 
     // Input
     pub keys: Res<'w, ButtonInput<KeyCode>>,
@@ -98,6 +101,10 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
                 cursor_world_pos,
             },
             asset_server: &engine.asset_server,
+            audio: AudioContext {
+                queue: &mut engine.audio_queue,
+                asset_server: &engine.asset_server,
+            },
         };
 
         if !state.initialized {
