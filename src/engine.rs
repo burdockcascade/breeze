@@ -7,6 +7,7 @@ use crate::input::InputContext;
 use crate::shapes::ShapeContext;
 use crate::sprite::{SpriteContext, SpriteQueue};
 use crate::text::{TextContext, TextQueue};
+use crate::window::WindowContext;
 
 pub struct AppConfig {
     pub title: String,
@@ -29,6 +30,7 @@ pub struct Context<'a> {
     pub input: InputContext<'a>,
     pub asset_server: &'a AssetServer,
     pub audio: AudioContext<'a>,
+    pub window: WindowContext<'a>,
 }
 
 impl<'a> Context<'a> {
@@ -82,7 +84,7 @@ pub struct EngineContext<'w, 's> {
     pub mouse_buttons: Res<'w, ButtonInput<MouseButton>>,
 
     // Window / Camera (for mouse calculation)
-    pub q_window: Query<'w, 's, &'static Window, With<PrimaryWindow>>,
+    pub q_window: Query<'w, 's, &'static mut Window, With<PrimaryWindow>>,
     pub q_camera: Query<'w, 's, (&'static Camera, &'static GlobalTransform), With<Camera2d>>,
 
     // Clear Color
@@ -92,49 +94,57 @@ pub struct EngineContext<'w, 's> {
 
 pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineContext, mut state: Local<InternalState>) {
 
-    let mut cursor_world_pos = Vec2::ZERO;
-    if let (Ok(window), Ok((camera, camera_transform))) = (engine.q_window.single(), engine.q_camera.single()) {
-        if let Some(screen_pos) = window.cursor_position() {
-            // Convert Screen (Top-Left) -> World (Center)
-            if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
-                cursor_world_pos = world_pos;
+    let mut primary_window_result = engine.q_window.single_mut();
+
+    if let Ok(ref mut window) = primary_window_result {
+
+        // --- INPUT PROCESSING ---
+        let mut cursor_world_pos = Vec2::ZERO;
+        if let Ok((camera, camera_transform)) = engine.q_camera.single_mut() {
+            if let Some(screen_pos) = window.cursor_position() {
+                if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
+                    cursor_world_pos = world_pos;
+                }
             }
         }
-    }
 
-    // --- UPDATE STEP ---
-    {
-        let mut ctx = Context {
-            time: &engine.time,
-            input: InputContext {
-                keys: &engine.keys,
-                mouse_buttons: &engine.mouse_buttons,
-                cursor_world_pos,
-            },
-            asset_server: &engine.asset_server,
-            audio: AudioContext {
-                queue: &mut engine.audio_queue,
+        // --- UPDATE STEP ---
+        {
+            let mut ctx = Context {
+                time: &engine.time,
+                input: InputContext {
+                    keys: &engine.keys,
+                    mouse_buttons: &engine.mouse_buttons,
+                    cursor_world_pos,
+                },
                 asset_server: &engine.asset_server,
-            },
-        };
+                audio: AudioContext {
+                    queue: &mut engine.audio_queue,
+                    asset_server: &engine.asset_server,
+                },
+                window: WindowContext {
+                    window
+                },
+            };
 
-        if !state.initialized {
-            game.init(&mut ctx);
-            state.initialized = true;
+            if !state.initialized {
+                game.init(&mut ctx);
+                state.initialized = true;
+            }
+
+            game.update(&mut ctx);
         }
 
-        game.update(&mut ctx);
-    }
-
-    // --- DRAW STEP ---
-    {
-        let mut draw_ctx = DrawContext {
-            time: &engine.time,
-            shapes: ShapeContext::new(&mut engine.painter),
-            text: TextContext::new(&mut engine.text_queue),
-            sprites: SpriteContext::new(&mut engine.sprite_queue, &engine.asset_server),
-            clear_color: &mut engine.clear_color,
-        };
-        game.draw(&mut draw_ctx);
+        // --- DRAW STEP ---
+        {
+            let mut draw_ctx = DrawContext {
+                time: &engine.time,
+                shapes: ShapeContext::new(&mut engine.painter),
+                text: TextContext::new(&mut engine.text_queue),
+                sprites: SpriteContext::new(&mut engine.sprite_queue, &engine.asset_server),
+                clear_color: &mut engine.clear_color,
+            };
+            game.draw(&mut draw_ctx);
+        }
     }
 }

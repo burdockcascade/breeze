@@ -4,6 +4,7 @@ mod text;
 mod input;
 mod sprite;
 mod audio;
+mod window;
 
 use bevy::prelude::*;
 use bevy_vector_shapes::prelude::*;
