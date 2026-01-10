@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/burdockcascade/breeze/compare/breeze-v0.1.0...breeze-v0.1.1) (2026-01-10)
+
+
+### 🐛 Bug Fixes
+
+* add license to Cargo.toml ([716de3b](https://github.com/burdockcascade/breeze/commit/716de3b049ea5f71fda0a4dcfc5723405e2fa335))
+
 ## 0.1.0 (2026-01-10)
 
 
