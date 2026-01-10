@@ -2,11 +2,12 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_vector_shapes::painter::ShapePainter;
-use crate::audio::{AudioContext, AudioQueue};
+use bevy_vector_shapes::Shape2dPlugin;
+use crate::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
 use crate::input::InputContext;
 use crate::shapes::ShapeContext;
-use crate::sprite::{SpriteContext, SpriteQueue};
-use crate::text::{TextContext, TextQueue};
+use crate::sprite::{render_sprites, SpriteContext, SpriteQueue};
+use crate::text::{render_text, TextContext, TextQueue};
 use crate::window::WindowContext;
 
 pub struct AppConfig {
@@ -147,4 +148,35 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
             game.draw(&mut draw_ctx);
         }
     }
+}
+
+fn setup_camera(mut commands: Commands) {
+    commands.spawn(Camera2d);
+}
+
+pub fn run<G: Game>(config: AppConfig, game: G) {
+    App::new()
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: config.title,
+                resolution: (config.width, config.height).into(),
+                ..default()
+            }),
+            ..default()
+        }))
+        .add_plugins(Shape2dPlugin::default())
+        .insert_resource(TextQueue::default())
+        .insert_resource(SpriteQueue::default())
+        .insert_resource(AudioQueue::default())
+        .insert_resource(ActiveLoops::default())
+        .insert_resource(ClearColor(Color::BLACK))
+        .insert_non_send_resource(game)
+        .add_systems(Startup, setup_camera)
+        .add_systems(Update, (
+            internal_game_loop::<G>,
+            render_text,
+            render_sprites,
+            play_audio,
+        ).chain())
+        .run();
 }
