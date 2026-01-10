@@ -1,9 +1,11 @@
 mod engine;
 mod shapes;
+mod text;
 
 use bevy::prelude::*;
 use bevy_vector_shapes::prelude::*;
 use crate::engine::*;
+use crate::text::{render_text, TextQueue};
 
 pub mod prelude {
     pub use crate::run;
@@ -27,10 +29,12 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
             ..default()
         }))
         .add_plugins(Shape2dPlugin::default())
+        .insert_resource(TextQueue::default())
         .insert_non_send_resource(game)
         .add_systems(Startup, setup_camera)
         .add_systems(Update, (
             internal_game_loop::<G>,
+            render_text,
         ).chain())
         .run();
 }
