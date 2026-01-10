@@ -1,6 +1,7 @@
 mod engine;
 mod shapes;
 mod text;
+mod input;
 
 use bevy::prelude::*;
 use bevy_vector_shapes::prelude::*;
