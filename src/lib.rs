@@ -1,14 +1,28 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+mod engine;
+
+use bevy::prelude::*;
+use crate::engine::*;
+
+pub mod prelude {
+    pub use crate::run;
+    pub use crate::engine::*;
+    pub use bevy::prelude::*;
+    pub use bevy::color::palettes::css::*;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub fn run<G: Game>(config: AppConfig, game: G) {
+    App::new()
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: config.title,
+                resolution: (config.width, config.height).into(),
+                ..default()
+            }),
+            ..default()
+        }))
+        .insert_non_send_resource(game)
+        .add_systems(Update, (
+            internal_game_loop::<G>,
+        ).chain())
+        .run();
 }
