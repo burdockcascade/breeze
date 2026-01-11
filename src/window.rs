@@ -22,16 +22,11 @@ impl<'a> WindowContext<'a> {
     }
 
     /// Toggle between Windowed and Borderless Fullscreen
-    pub fn toggle_fullscreen(&mut self) -> bool {
-        match self.window.mode {
-            WindowMode::Windowed => {
-                self.window.mode = WindowMode::BorderlessFullscreen(MonitorSelection::Primary);
-                true
-            }
-            _ => {
-                self.window.mode = WindowMode::Windowed;
-                false
-            }
+    pub fn set_fullscreen(&mut self, fullscreen: bool) {
+        if fullscreen {
+            self.window.mode = WindowMode::BorderlessFullscreen(MonitorSelection::Primary);
+        } else {
+            self.window.mode = WindowMode::Windowed;
         }
     }
 

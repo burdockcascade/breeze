@@ -26,7 +26,24 @@ impl Game for MyGame {
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {
-        ctx.shapes.circle(self.pos.x, self.pos.y, 30.0, self.color);
+
+        // Clear background
+        ctx.clear_background(Color::from(LIGHT_SALMON));
+
+        // World layer
+        ctx.with_layer(0, |world2d| {
+            world2d.set_camera(CameraMode::default());
+            world2d.shapes.circle(self.pos.x, self.pos.y, 30.0, self.color);
+        });
+
+        // UI layer
+        ctx.with_layer(1, |ui| {
+            ui.set_camera(CameraMode::default());
+            ui.text.draw(
+                "Use Arrow Keys to Move Circle. Left Click to turn Green, Right Click to turn Red.",
+                -0.0, 250.0,
+            );
+        });
     }
 }
 

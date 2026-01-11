@@ -10,16 +10,21 @@ impl Game for MyGame {
 
     fn update(&mut self, ctx: &mut Context) {
         if ctx.input.key_pressed(KeyCode::Enter) && ctx.input.key_down(KeyCode::AltLeft) {
-            self.is_fullscreen = ctx.window.toggle_fullscreen();
+            self.is_fullscreen = !self.is_fullscreen;
+            ctx.window.set_fullscreen(self.is_fullscreen);
         }
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {
-        if self.is_fullscreen {
-            ctx.text.draw("Fullscreen mode - Press Alt+Enter to toggle", 0.0, 0.0);
-        } else {
-            ctx.text.draw("Windowed mode - Press Alt+Enter to toggle", 0.0, 0.0);
-        }
+        ctx.clear_background(Color::from(LIGHT_SKY_BLUE));
+        ctx.with_layer(0, |ui| {
+            ui.set_camera(CameraMode::default());
+            if self.is_fullscreen {
+                ui.text.draw("Fullscreen mode - Press Alt+Enter to toggle", 0.0, 0.0);
+            } else {
+                ui.text.draw("Windowed mode - Press Alt+Enter to toggle", 0.0, 0.0);
+            }
+        });
     }
 }
 
