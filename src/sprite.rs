@@ -1,6 +1,7 @@
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
+use crate::engine::StableId;
 
 // A command to draw a sprite
 #[derive(Clone)]
@@ -56,6 +57,7 @@ impl<'a> SpriteContext<'a> {
 #[query_data(mutable)]
 pub struct SpriteItem {
     pub entity: Entity,
+    pub id: Option<&'static StableId>,
     pub transform: &'static mut Transform,
     pub sprite: &'static mut Sprite,
     pub visibility: &'static mut Visibility,
@@ -65,63 +67,76 @@ pub struct SpriteItem {
 // System to render sprites from the sprite queue
 pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, mut query: Query<SpriteItem, With<ImmediateSprite>>, mut flat_commands: Local<Vec<(usize, usize, SpriteCommand)>>) {
 
-    // Flatten
+    // Flatten commands (same as before)
     flat_commands.clear();
     for (layer_id, cmds) in queue.0.iter().enumerate() {
-        for (index, cmd) in cmds.iter().enumerate() {
-            flat_commands.push((layer_id, index, cmd.clone()));
+        for (i, cmd) in cmds.iter().enumerate() {
+            flat_commands.push((layer_id, i, cmd.clone()));
         }
     }
 
-    let mut drawn_count = 0;
+    // Build a Lookup Table (The "Stable" Map)
+    let mut entity_lookup = Vec::new();
 
-    // Recycle
-    for (mut item, (layer_id, index, cmd)) in query.iter_mut().zip(flat_commands.iter()) {
-        
-        // Calculate z-index based on layer and index to ensure proper layering
-        let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.00001);
+    // Resize to fit the largest ID we might encounter (heuristic)
+    let max_capacity = flat_commands.len().max(query.iter().len());
+    entity_lookup.resize_with(max_capacity, || None);
 
-        // Update transform only if changed
-        if item.transform.translation != cmd.position.extend(z) {
-            item.transform.translation = cmd.position.extend(z);
-        }
-
-        // Update scale if changed
-        if item.transform.scale.truncate() != cmd.scale {
-            item.transform.scale = cmd.scale.extend(1.0);
-        }
-
-        // Update sprite properties
-        if item.sprite.image != cmd.image {
-            item.sprite.image = cmd.image.clone();
-        }
-
-        // Update color if changed
-        if item.sprite.color != cmd.color {
-            item.sprite.color = cmd.color;
-        }
-
-        // Update visibility
-        if *item.visibility != Visibility::Visible {
-            *item.visibility = Visibility::Visible;
-        }
-
-        // Apply the correct RenderLayer
-        let target_layer = RenderLayers::layer(*layer_id);
-        if let Some(ref mut l) = item.layers {
-            if **l != target_layer {
-                **l = target_layer;
+    // Populate the lookup
+    for item in query.iter_mut() {
+        if let Some(stable_id) = item.id {
+            if stable_id.0 < entity_lookup.len() {
+                entity_lookup[stable_id.0] = Some(item);
+            } else {
+                commands.entity(item.entity).despawn();
             }
         } else {
-            commands.entity(item.entity).insert(target_layer);
+            // Entity missing an ID (shouldn't happen, but safe cleanup)
+            commands.entity(item.entity).despawn();
         }
-
-        drawn_count += 1;
     }
 
-    // Spawn
-    if flat_commands.len() > drawn_count {
-        for (layer_id, _, cmd) in flat_commands.iter().skip(drawn_count) {
+    // Process Commands
+    for (global_index, (layer_id, _sub_index, cmd)) in flat_commands.iter().enumerate() {
+
+        let target_layer = RenderLayers::layer(*layer_id);
+
+        // Does an entity exist for this draw call index?
+        if let Some(Some(item)) = entity_lookup.get_mut(global_index) {
+
+            // Target properties
+            let z = (*layer_id as f32 * 100.0) + (global_index as f32 * 0.00001);
+            let target_pos = cmd.position.extend(z);
+            let target_scale = cmd.scale.extend(1.0);
+
+            // Change Detection Optimization
+            if item.transform.translation != target_pos {
+                item.transform.translation = target_pos;
+            }
+            if item.transform.scale != target_scale {
+                item.transform.scale = target_scale;
+            }
+            if item.sprite.image != cmd.image {
+                item.sprite.image = cmd.image.clone();
+            }
+            if item.sprite.color != cmd.color {
+                item.sprite.color = cmd.color;
+            }
+            if *item.visibility != Visibility::Visible {
+                *item.visibility = Visibility::Visible;
+            }
+
+            // Layer Check
+            if let Some(ref mut l) = item.layers {
+                if **l != target_layer { **l = target_layer; }
+            } else {
+                commands.entity(item.entity).insert(target_layer);
+            }
+
+            // Remove from lookup so we don't double-process or despawn it later
+            entity_lookup[global_index] = None;
+
+        } else {
             commands.spawn((
                 Sprite {
                     image: cmd.image.clone(),
@@ -131,23 +146,27 @@ pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, m
                 Transform::from_translation(cmd.position.extend(0.0)),
                 Visibility::Visible,
                 ImmediateSprite,
-                RenderLayers::layer(*layer_id),
+                StableId(global_index),
+                target_layer,
             ));
         }
+
     }
 
-    // Hide unused entities
-    const MAX_RESERVE: usize = 100; // Keep 100 spares
+    // Hide or Despawn Unused Entities
+    const MAX_RESERVE: usize = 100;
     let mut reserve_count = 0;
 
-    for mut item in query.iter_mut().skip(drawn_count) {
-        if reserve_count < MAX_RESERVE {
-            if *item.visibility != Visibility::Hidden {
-                *item.visibility = Visibility::Hidden;
+    for item_opt in entity_lookup.iter_mut() {
+        if let Some(mut item) = item_opt.take() {
+            if reserve_count < MAX_RESERVE {
+                if *item.visibility != Visibility::Hidden {
+                    *item.visibility = Visibility::Hidden;
+                }
+                reserve_count += 1;
+            } else {
+                commands.entity(item.entity).despawn();
             }
-            reserve_count += 1;
-        } else {
-            commands.entity(item.entity).despawn();
         }
     }
 
@@ -155,4 +174,5 @@ pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, m
     for list in queue.0.iter_mut() {
         list.clear();
     }
+
 }

@@ -1,6 +1,7 @@
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
+use crate::engine::StableId;
 
 // Command struct for queuing text rendering
 #[derive(Clone)]
@@ -61,6 +62,7 @@ impl<'a> TextContext<'a> {
 #[query_data(mutable)]
 pub struct TextItem {
     pub entity: Entity,
+    pub id: Option<&'static StableId>,
     pub text: &'static mut Text2d,
     pub transform: &'static mut Transform,
     pub font: &'static mut TextFont,
@@ -71,59 +73,82 @@ pub struct TextItem {
 
 pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut query: Query<TextItem, With<ImmediateText>>, mut flat_commands: Local<Vec<(usize, usize, TextCommand)>>) {
 
-    // Flatten
+    // Flatten commands (same as before)
     flat_commands.clear();
     for (layer_id, cmds) in queue.0.iter().enumerate() {
-        for (index, cmd) in cmds.iter().enumerate() {
-            flat_commands.push((layer_id, index, cmd.clone()));
+        for (i, cmd) in cmds.iter().enumerate() {
+            flat_commands.push((layer_id, i, cmd.clone()));
         }
     }
 
-    let mut drawn_count = 0;
+    // Build a Lookup Table (The "Stable" Map)
+    let mut entity_lookup = Vec::new();
 
-    // Recycle
-    for (mut item, (layer_id, index, cmd)) in query.iter_mut().zip(flat_commands.iter()) {
+    // Resize to fit the largest ID we might encounter (heuristic)
+    let max_capacity = flat_commands.len().max(query.iter().len());
+    entity_lookup.resize_with(max_capacity, || None);
 
-        if item.text.0 != cmd.text {
-            item.text.0 = cmd.text.clone();
+    // Populate the lookup
+    for item in query.iter_mut() {
+        if let Some(stable_id) = item.id {
+            if stable_id.0 < entity_lookup.len() {
+                entity_lookup[stable_id.0] = Some(item);
+            } else {
+                commands.entity(item.entity).despawn();
+            }
+        } else {
+            // Entity missing an ID (shouldn't happen, but safe cleanup)
+            commands.entity(item.entity).despawn();
         }
+    }
 
-        // Calculate z-index based on layer and index to ensure proper layering
-        let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.00001);
-
-        // Update transform only if changed
-        if item.transform.translation != Vec3::new(cmd.position.x, cmd.position.y, z) {
-            item.transform.translation = Vec3::new(cmd.position.x, cmd.position.y, z);
-        }
-
-        // Update font size only if changed
-        if item.font.font_size != cmd.size {
-            item.font.font_size = cmd.size;
-        }
-
-        // Update color only if changed
-        if item.color.0 != cmd.color {
-            item.color.0 = cmd.color;
-        }
-
-        // Update visibility
-        if *item.visibility != Visibility::Visible {
-            *item.visibility = Visibility::Visible;
-        }
+    // Process Commands
+    for (global_index, (layer_id, _sub_index, cmd)) in flat_commands.iter().enumerate() {
 
         let target_layer = RenderLayers::layer(*layer_id);
-        if let Some(ref mut l) = item.layers {
-            if **l != target_layer { **l = target_layer; }
+
+        // Does an entity exist for this draw call index?
+        if let Some(Some(item)) = entity_lookup.get_mut(global_index) {
+
+            // Update text only if changed
+            if item.text.0 != cmd.text {
+                item.text.0 = cmd.text.clone();
+            }
+
+            // Calculate z-index based on layer and index to ensure proper layering
+            let z = (*layer_id as f32 * 100.0) + (global_index as f32 * 0.00001);
+
+            // Update transform only if changed
+            if item.transform.translation != Vec3::new(cmd.position.x, cmd.position.y, z) {
+                item.transform.translation = Vec3::new(cmd.position.x, cmd.position.y, z);
+            }
+
+            // Update font size only if changed
+            if item.font.font_size != cmd.size {
+                item.font.font_size = cmd.size;
+            }
+
+            // Update color only if changed
+            if item.color.0 != cmd.color {
+                item.color.0 = cmd.color;
+            }
+
+            // Update visibility
+            if *item.visibility != Visibility::Visible {
+                *item.visibility = Visibility::Visible;
+            }
+
+            if let Some(ref mut l) = item.layers {
+                if **l != target_layer { **l = target_layer; }
+            } else {
+                commands.entity(item.entity).insert(target_layer);
+            }
+
+            // Remove from lookup so we don't double-process or despawn it later
+            entity_lookup[global_index] = None;
+
         } else {
-            commands.entity(item.entity).insert(target_layer);
-        }
-
-        drawn_count += 1;
-    }
-
-    // Spawn
-    if flat_commands.len() > drawn_count {
-        for (layer_id, _, cmd) in flat_commands.iter().skip(drawn_count) {
+            // Spawn new entity
             commands.spawn((
                 Text2d::new(cmd.text.clone()),
                 Transform::from_xyz(cmd.position.x, cmd.position.y, 1.0),
@@ -131,23 +156,26 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
                 TextColor(cmd.color),
                 Visibility::Visible,
                 ImmediateText,
-                RenderLayers::layer(*layer_id),
+                StableId(global_index),
+                target_layer,
             ));
         }
     }
 
-    // Hide
-    const MAX_RESERVE: usize = 100; // Keep 100 spares
+    // Hide or Despawn Unused Entities
+    const MAX_RESERVE: usize = 100;
     let mut reserve_count = 0;
 
-    for mut item in query.iter_mut().skip(drawn_count) {
-        if reserve_count < MAX_RESERVE {
-            if *item.visibility != Visibility::Hidden {
-                *item.visibility = Visibility::Hidden;
+    for item_opt in entity_lookup.iter_mut() {
+        if let Some(mut item) = item_opt.take() {
+            if reserve_count < MAX_RESERVE {
+                if *item.visibility != Visibility::Hidden {
+                    *item.visibility = Visibility::Hidden;
+                }
+                reserve_count += 1;
+            } else {
+                commands.entity(item.entity).despawn();
             }
-            reserve_count += 1;
-        } else {
-            commands.entity(item.entity).despawn();
         }
     }
 

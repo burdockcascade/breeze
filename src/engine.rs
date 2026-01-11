@@ -107,6 +107,9 @@ pub trait Game: Send + Sync + 'static {
 #[derive(Default)]
 pub struct InternalState { initialized: bool }
 
+#[derive(Component)]
+pub struct StableId(pub usize);
+
 #[derive(SystemParam)]
 pub struct EngineContext<'w, 's> {
 
@@ -209,14 +212,16 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
 
 pub fn run<G: Game>(config: AppConfig, game: G) {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: config.title,
-                resolution: (config.width, config.height).into(),
+        .add_plugins(DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: config.title,
+                    resolution: (config.width, config.height).into(),
+                    ..default()
+                }),
                 ..default()
-            }),
-            ..default()
-        }))
+            })
+        )
         .add_plugins(Shape2dPlugin::default())
         .insert_resource(TextQueue::default())
         .insert_resource(SpriteQueue::default())
