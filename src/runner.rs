@@ -1,5 +1,6 @@
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::system::SystemParam;
+use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_vector_shapes::painter::ShapePainter;
@@ -132,6 +133,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
                 }),
                 ..default()
             })
+            .disable::<LogPlugin>()
         )
         .add_plugins(Shape2dPlugin::default())
         .insert_resource(TextQueue::default())
