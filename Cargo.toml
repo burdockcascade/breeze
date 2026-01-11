@@ -1,6 +1,6 @@
 [package]
 name = "breeze"
-version = "0.1.1"
+version = "0.2.0"
 description = "A wrapper around Bevy for easier game development."
 keywords = ["bevy", "game-development", "graphics", "wrapper"]
 categories = ["game-development"]
