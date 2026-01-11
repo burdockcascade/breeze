@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
@@ -12,38 +14,32 @@ pub struct SpriteCommand {
 
 // A queue of sprite commands to be rendered each frame
 #[derive(Resource, Default)]
-pub struct SpriteQueue(pub(crate) Vec<SpriteCommand>);
+pub struct SpriteQueue(pub HashMap<usize, Vec<SpriteCommand>>);
 
 // Marker component for immediate mode sprites
 #[derive(Component)]
 pub struct ImmediateSprite;
 
-pub struct SpriteContext<'a, 'w> {
-    pub queue: &'a mut ResMut<'w, SpriteQueue>,
+pub struct SpriteContext<'a> {
+    pub queue: &'a mut SpriteQueue,
     pub asset_server: &'a AssetServer,
+    pub layer_id: usize,
 }
 
-impl<'a, 'w> SpriteContext<'a, 'w> {
-    
-    pub fn new(queue: &'a mut ResMut<'w, SpriteQueue>, asset_server: &'a AssetServer) -> Self {
-        SpriteContext {
-            queue,
-            asset_server,
-        }
+impl<'a> SpriteContext<'a> {
+
+    fn get_queue(&mut self) -> &mut Vec<SpriteCommand> {
+        self.queue.0.entry(self.layer_id).or_default()
     }
-    
+
+    /// Draw a sprite at (x, y) with default scale and color
     pub fn draw(&mut self, image: &Handle<Image>, x: f32, y: f32) {
-        self.queue.0.push(SpriteCommand {
-            image: image.clone(),
-            position: Vec2::new(x, y),
-            scale: Vec2::ONE,
-            color: Color::WHITE,
-        });
+        self.draw_ext(image, x, y, 1.0, Color::WHITE);
     }
 
     /// Draw a scaled or tinted sprite
     pub fn draw_ext(&mut self, image: &Handle<Image>, x: f32, y: f32, scale: f32, color: Color) {
-        self.queue.0.push(SpriteCommand {
+        self.get_queue().push(SpriteCommand {
             image: image.clone(),
             position: Vec2::new(x, y),
             scale: Vec2::splat(scale),
@@ -61,53 +57,70 @@ pub struct SpriteItem {
     pub transform: &'static mut Transform,
     pub sprite: &'static mut Sprite,
     pub visibility: &'static mut  Visibility,
+    pub layers: Option<&'static mut RenderLayers>,
 }
 
 // System to render sprites from the sprite queue
 pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, mut query: Query<SpriteItem, With<ImmediateSprite>>) {
+
+    // Flatten
+    let mut flat_commands = Vec::new();
+    for (&layer_id, cmds) in queue.0.iter() {
+        for (i, cmd) in cmds.iter().enumerate() {
+            flat_commands.push((layer_id, i, cmd));
+        }
+    }
+
     let mut drawn_count = 0;
 
-    // We iterate through our pool of entities and the user's commands together
-    for ((i, command), mut sprite_item) in queue.0.iter().enumerate().zip(query.iter_mut()) {
+    // Recycle
+    for (mut item, (layer_id, index, cmd)) in query.iter_mut().zip(flat_commands.iter()) {
+        // Calculate Z based on layer to ensure proper sorting
+        let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.0001);
 
-        // Update the entity to match the command
-        let z_depth = i as f32 * 0.0001; // Slightly offset z to avoid z-fighting
-        sprite_item.transform.translation = command.position.extend(z_depth);
-        sprite_item.transform.scale = command.scale.extend(1.0);
-        sprite_item.sprite.image = command.image.clone();
-        sprite_item.sprite.color = command.color;
+        item.transform.translation = cmd.position.extend(z);
+        item.transform.scale = cmd.scale.extend(1.0);
+        item.sprite.image = cmd.image.clone();
+        item.sprite.color = cmd.color;
+        *item.visibility = Visibility::Visible;
 
-        // Make sure it's visible
-        *sprite_item.visibility = Visibility::Visible;
+        // Apply the correct RenderLayer
+        let target_layer = RenderLayers::layer(*layer_id);
+        if let Some(ref mut l) = item.layers {
+            if **l != target_layer {
+                **l = target_layer;
+            }
+        } else {
+            commands.entity(item.entity).insert(target_layer);
+        }
 
         drawn_count += 1;
     }
 
-    // If we have more commands than entities in the pool, spawn new ones
-    if queue.0.len() > drawn_count {
-        for command in queue.0.iter().skip(drawn_count) {
+    // Spawn
+    if flat_commands.len() > drawn_count {
+        for (layer_id, _, cmd) in flat_commands.iter().skip(drawn_count) {
             commands.spawn((
                 Sprite {
-                    image: command.image.clone(),
-                    color: command.color,
+                    image: cmd.image.clone(),
+                    color: cmd.color,
                     ..default()
                 },
-                Transform {
-                    translation: command.position.extend(0.0),
-                    scale: command.scale.extend(1.0),
-                    ..default()
-                },
+                Transform::from_translation(cmd.position.extend(0.0)),
                 Visibility::Visible,
                 ImmediateSprite,
+                RenderLayers::layer(*layer_id),
             ));
         }
     }
 
-    // Hide any remaining entities in the pool that were not used this frame
-    for mut sprite_item in query.iter_mut().skip(drawn_count) {
-        *sprite_item.visibility = Visibility::Hidden;
+    // Hide unused entities
+    for mut item in query.iter_mut().skip(drawn_count) {
+        *item.visibility = Visibility::Hidden;
     }
 
-    // Clear the queue for the next frame
-    queue.0.clear();
+    // Cleanup
+    for list in queue.0.values_mut() {
+        list.clear();
+    }
 }

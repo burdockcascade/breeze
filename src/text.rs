@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
@@ -13,35 +15,38 @@ pub struct TextCommand {
 
 // Resource to hold queued text commands
 #[derive(Resource, Default)]
-pub struct TextQueue(pub Vec<TextCommand>);
+pub struct TextQueue(pub HashMap<usize, Vec<TextCommand>>);
 
 // Marker component for immediate text entities
 #[derive(Component)]
 pub struct ImmediateText;
 
-pub struct TextContext<'a, 'w> {
-    pub text_queue: &'a mut ResMut<'w, TextQueue>,
+pub struct TextContext<'a> {
+    pub queue: &'a mut TextQueue,
+    pub layer_id: usize,
 }
 
-impl<'a, 'w> TextContext<'a, 'w> {
+impl<'a> TextContext<'a> {
 
-    pub fn new(text_queue: &'a mut ResMut<'w, TextQueue>) -> Self {
-        Self { text_queue }
+    pub fn new(queue: &'a mut TextQueue, layer_id: usize) -> Self {
+        Self {
+            queue,
+            layer_id,
+        }
+    }
+
+    fn get_queue(&mut self) -> &mut Vec<TextCommand> {
+        self.queue.0.entry(self.layer_id).or_default()
     }
 
     pub fn draw(&mut self, text: &str, x: f32, y: f32) {
-        self.text_queue.0.push(TextCommand {
-            text: text.to_string(),
-            position: Vec2::new(x, y),
-            size: 20.0,
-            color: Color::WHITE,
-        });
+       self.draw_ext(text, x, y, 16.0, Color::BLACK);
     }
 
     /// Draw text with size and color
     pub fn draw_ext(&mut self, text: &str, x: f32, y: f32, size: f32, color: Color) {
-        self.text_queue.0.push(TextCommand {
-            text: text.to_string(),
+        self.get_queue().push(TextCommand {
+            text: text.to_owned(),
             position: Vec2::new(x, y),
             size,
             color,
@@ -62,56 +67,68 @@ pub struct TextItem {
     pub layout: &'static mut TextLayout,
     pub anchor: &'static mut Anchor,
     pub visibility: &'static mut Visibility,
+    pub layers: Option<&'static mut RenderLayers>,
 }
 
 pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut query: Query<TextItem, With<ImmediateText>>) {
+
+    // Flatten
+    let mut flat_commands = Vec::new();
+    for (&layer_id, cmds) in queue.0.iter() {
+        for (i, cmd) in cmds.iter().enumerate() {
+            flat_commands.push((layer_id, i, cmd));
+        }
+    }
+
     let mut drawn_count = 0;
 
-    // Update existing entities
-    for ((i, command), mut text_item) in queue.0.iter().enumerate().zip(query.iter_mut()) {
+    // Recycle
+    for (mut item, (layer_id, index, cmd)) in query.iter_mut().zip(flat_commands.iter()) {
+        item.text.0 = cmd.text.clone();
 
-        // Update content
-        text_item.text.0 = command.text.clone();
+        let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.0001) + 1.0;
+        item.transform.translation = Vec3::new(cmd.position.x, cmd.position.y, z);
 
-        // Update position
-        let z_depth = 1.0 + (i as f32 * 0.0001); // Slightly offset z to avoid z-fighting
-        text_item.transform.translation = Vec3::new(command.position.x, command.position.y, z_depth);
+        item.font.font_size = cmd.size;
+        item.color.0 = cmd.color;
+        *item.layout = TextLayout::default();
+        *item.anchor = Anchor::default();
+        *item.visibility = Visibility::Visible;
 
-        // Update style
-        text_item.font.font_size = command.size;
-        text_item.color.0 = command.color;
+        let target_layer = RenderLayers::layer(*layer_id);
+        if let Some(ref mut l) = item.layers {
+            if **l != target_layer { **l = target_layer; }
+        } else {
+            commands.entity(item.entity).insert(target_layer);
+        }
 
-        *text_item.layout = TextLayout::default();
-        *text_item.anchor = Anchor::default();
-
-        *text_item.visibility = Visibility::Visible;
         drawn_count += 1;
     }
 
-    // If there are more commands than existing entities, spawn new ones
-    if queue.0.len() > drawn_count {
-        for command in queue.0.iter().skip(drawn_count) {
+    // Spawn
+    if flat_commands.len() > drawn_count {
+        for (layer_id, _, cmd) in flat_commands.iter().skip(drawn_count) {
             commands.spawn((
-                Text2d::new(command.text.clone()),
-                Transform::from_xyz(command.position.x, command.position.y, 1.0),
-                TextFont {
-                    font_size: command.size,
-                    ..default()
-                },
-                TextColor(command.color),
+                Text2d::new(cmd.text.clone()),
+                Transform::from_xyz(cmd.position.x, cmd.position.y, 1.0),
+                TextFont { font_size: cmd.size, ..default() },
+                TextColor(cmd.color),
                 TextLayout::default(),
                 Anchor::default(),
                 Visibility::Visible,
                 ImmediateText,
+                RenderLayers::layer(*layer_id),
             ));
         }
     }
 
-    // Hide unused entities
-    for mut text_item in query.iter_mut().skip(drawn_count) {
-        *text_item.visibility = Visibility::Hidden;
+    // Hide
+    for mut item in query.iter_mut().skip(drawn_count) {
+        *item.visibility = Visibility::Hidden;
     }
 
-    // Clear the queue
-    queue.0.clear();
+    // Cleanup
+    for list in queue.0.values_mut() {
+        list.clear();
+    }
 }

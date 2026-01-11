@@ -2,7 +2,8 @@ use breeze::prelude::*;
 
 #[derive(Default)]
 struct MyGame {
-    music_playing: bool
+    music_playing: bool,
+    camera: CameraMode,
 }
 
 impl Game for MyGame {
@@ -13,6 +14,7 @@ impl Game for MyGame {
     }
 
     fn update(&mut self, ctx: &mut Context) {
+        println!("Music playing: {}", self.music_playing);
         // Pause music when space is pressed
         if ctx.input.key_pressed(KeyCode::KeyP) {
             if !self.music_playing {
@@ -27,11 +29,17 @@ impl Game for MyGame {
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {
-        if self.music_playing {
-            ctx.text.draw("Music Playing - Press 'P' to Pause", 0.0, 0.0);
-        } else {
-            ctx.text.draw("Music Paused - Press 'P' to Resume", 0.0, 0.0);
-        }
+
+        ctx.clear_background(Color::from(LIGHT_CORAL));
+
+        ctx.with_layer(0, |ui| {
+            ui.set_camera(self.camera);
+            if self.music_playing {
+                ui.text.draw("Music Playing - Press 'P' to Pause", 0.0, 0.0);
+            } else {
+                ui.text.draw("Music Paused - Press 'P' to Resume", 0.0, 0.0);
+            }
+        });
     }
 }
 

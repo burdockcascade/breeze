@@ -15,7 +15,12 @@ impl Game for MyGame {
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {
-        ctx.text.draw("Press Space", 0.0, 100.0);
+        ctx.clear_background(Color::from(DARK_SLATE_GRAY));
+
+        ctx.with_layer(0, |ui| {
+            ui.set_camera(CameraMode::default());
+            ui.text.draw("Press Space to Play Sound Effect", -150.0, 0.0);
+        });
     }
 }
 
