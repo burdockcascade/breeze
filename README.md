@@ -19,38 +19,24 @@ Breeze is in early development. The core immediate-mode drawing API is functiona
 ```rust
 use breeze::prelude::*;
 
-struct MyGame {
-    time: f32,
-}
+struct MyGame;
 
 impl Game for MyGame {
-    fn update(&mut self, ctx: &mut Context) {
-        self.time = ctx.time.elapsed_secs();
+    fn init(&mut self, _ctx: &mut Context) {
+    }
+
+    fn update(&mut self, _ctx: &mut Context) {
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {
-
-        // Draw a Circle that moves
-        let x_pos = self.time.sin() * 200.0;
-        ctx.circle(x_pos, 0.0, 60.0, Color::from(RED));
-
-        // Draw a static Rectangle
-        ctx.rect(0.0, -200.0, 400.0, 50.0, Color::from(BLUE_VIOLET));
-        ctx.text("Hello, World!", -0.0, -200.0);
-
-        // Draw a Ring that pulses
-        let ring_radius = 100.0 + (self.time * 5.0).sin() * 25.0;
-        ctx.ring(x_pos, 0.0, ring_radius, 10.0, Color::from(YELLOW));
+        ctx.with_layer(0, |ui| {
+            ui.set_camera(CameraMode::default());
+            ui.text.draw("Hello, Breeze!", -100.0, 0.0);
+        });
     }
 }
 
 fn main() {
-    let config = AppConfig {
-        title: "Hello Window".to_string(),
-        width: 1280,
-        height: 720,
-    };
-    let my_game = MyGame { time: 0.0 };
-    run(config, my_game);
+    run(AppConfig::default(), MyGame);
 }
 ```
