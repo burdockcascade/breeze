@@ -37,6 +37,14 @@ impl<'a, 'w, 's> ShapeContext<'a, 'w, 's> {
         self.painter.rect(Vec2::new(w, h));
     }
 
+    // Draw a line between two points
+    pub fn line(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Color) {
+        self.prepare();
+        self.painter.color = color;
+        self.painter.thickness = thickness;
+        self.painter.line(Vec3::new(x1, y1, 0.0), Vec3::new(x2, y2, 0.0));
+    }
+
     /// Draw a hollow ring (just to show versatility)
     pub fn ring(&mut self, x: f32, y: f32, radius: f32, thickness: f32, color: Color) {
         self.prepare();
