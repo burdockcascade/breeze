@@ -40,3 +40,6 @@ fn main() {
     run(AppConfig::default(), MyGame);
 }
 ```
+
+# License
+Breeze is licensed under the MIT License. See the LICENSE file for details.
