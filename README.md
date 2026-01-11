@@ -1,3 +1,10 @@
+[![Project Status: Alpha](https://img.shields.io/badge/Project%20Status-Alpha-yellow.svg)](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#LICENSE)
+[![crates.io](https://img.shields.io/crates/v/breeze.svg)](https://crates.io/crates/breeze)
+[![tests](https://github.com/burdockcascade/breeze/actions/workflows/build-examples.yml/badge.svg?branch=master)](https://github.com/burdockcascade/bytevm/actions/workflows/build-examples.yml)
+[![docs](https://docs.rs/bytevm/badge.svg)](https://docs.rs/breeze)
+[![crates](https://img.shields.io/crates/d/breeze.svg)](https://crates.io/crates/breeze)
+
 # Breeze
 An opinionated, immediate-mode game framework for Rust.
 
