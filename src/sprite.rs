@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
@@ -14,7 +13,7 @@ pub struct SpriteCommand {
 
 // A queue of sprite commands to be rendered each frame
 #[derive(Resource, Default)]
-pub struct SpriteQueue(pub HashMap<usize, Vec<SpriteCommand>>);
+pub struct SpriteQueue(pub Vec<Vec<SpriteCommand>>);
 
 // Marker component for immediate mode sprites
 #[derive(Component)]
@@ -29,7 +28,10 @@ pub struct SpriteContext<'a> {
 impl<'a> SpriteContext<'a> {
 
     fn get_queue(&mut self) -> &mut Vec<SpriteCommand> {
-        self.queue.0.entry(self.layer_id).or_default()
+        if self.layer_id >= self.queue.0.len() {
+            self.queue.0.resize_with(self.layer_id + 1, Vec::new);
+        }
+        &mut self.queue.0[self.layer_id]
     }
 
     /// Draw a sprite at (x, y) with default scale and color
@@ -65,7 +67,7 @@ pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, m
 
     // Flatten
     let mut flat_commands = Vec::new();
-    for (&layer_id, cmds) in queue.0.iter() {
+    for (layer_id, cmds) in queue.0.iter().enumerate() {
         for (i, cmd) in cmds.iter().enumerate() {
             flat_commands.push((layer_id, i, cmd));
         }
@@ -120,7 +122,7 @@ pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, m
     }
 
     // Cleanup
-    for list in queue.0.values_mut() {
+    for list in queue.0.iter_mut() {
         list.clear();
     }
 }
