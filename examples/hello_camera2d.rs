@@ -43,7 +43,7 @@ impl Game for MyGame {
             ui.set_camera(CameraMode::default());
             ui.text.draw(
                 "Use Arrow Keys to Move Camera, Z/X to Zoom In/Out",
-                -0.0, 250.0,
+                0.0, 250.0,
             );
         });
 
