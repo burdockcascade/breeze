@@ -152,11 +152,11 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
         let input_camera = engine.q_camera.iter().find(|(_, _, layers)| {
             match layers {
                 Some(l) => l.intersects(&RenderLayers::layer(target_layer_id)),
-                // If a camera has NO layers, it renders everything, so it counts!
                 None => true,
             }
         });
 
+        // Calculate cursor world position
         if let Some((camera, camera_transform, _)) = input_camera {
             if let Some(screen_pos) = window.cursor_position() {
                 if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
@@ -165,9 +165,7 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
             }
         }
 
-        // 3. Create Context & Run Update
-        // This MUST happen here, so 'camera_ctx' (which borrows 'ortho')
-        // is used while 'ortho' is still valid.
+        // Call Update
         {
             let mut ctx = Context {
                 time: &engine.time,
@@ -192,23 +190,23 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
             }
 
             game.update(&mut ctx);
-        } // 'ctx' and 'camera_ctx' die here, releasing the borrow on 'camera_projection_enum'
-    }
+        }
 
-    // --- DRAW STEP ---
-    {
-        let mut draw_ctx = DrawContext {
-            time: &engine.time,
-            painter: &mut engine.painter,
-            sprite_queue: &mut engine.sprite_queue,
-            text_queue: &mut engine.text_queue,
-            asset_server: &engine.asset_server,
-            clear_color: &mut engine.clear_color,
-            camera_queue: &mut engine.camera_queue,
-        };
-        game.draw(&mut draw_ctx);
-    }
+        // Call Draw
+        {
+            let mut draw_ctx = DrawContext {
+                time: &engine.time,
+                painter: &mut engine.painter,
+                sprite_queue: &mut engine.sprite_queue,
+                text_queue: &mut engine.text_queue,
+                asset_server: &engine.asset_server,
+                clear_color: &mut engine.clear_color,
+                camera_queue: &mut engine.camera_queue,
+            };
+            game.draw(&mut draw_ctx);
+        }
 
+    }
 }
 
 pub fn run<G: Game>(config: AppConfig, game: G) {
