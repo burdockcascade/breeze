@@ -131,7 +131,7 @@ pub fn manage_cameras(mut commands: Commands, mut queue: ResMut<CameraQueue>, mu
             match mode {
                 CameraMode::Camera2d { position, scale } => {
                     commands.spawn((
-                        Camera2d, // <--- Essential to prevent the error!
+                        Camera2d,
                         camera_base,
                         target_layer,
                         Projection::Orthographic(OrthographicProjection {
