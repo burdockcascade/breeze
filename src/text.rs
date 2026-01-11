@@ -88,7 +88,9 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
     for (mut item, (layer_id, index, cmd)) in query.iter_mut().zip(flat_commands.iter()) {
         item.text.0 = cmd.text.clone();
 
-        let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.0001) + 1.0;
+        // Calculate z-index based on layer and index to ensure proper layering
+        let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.00001);
+
         item.transform.translation = Vec3::new(cmd.position.x, cmd.position.y, z);
 
         item.font.font_size = cmd.size;

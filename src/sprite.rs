@@ -77,8 +77,9 @@ pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, m
 
     // Recycle
     for (mut item, (layer_id, index, cmd)) in query.iter_mut().zip(flat_commands.iter()) {
-        // Calculate Z based on layer to ensure proper sorting
-        let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.0001);
+        
+        // Calculate z-index based on layer and index to ensure proper layering
+        let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.00001);
 
         item.transform.translation = cmd.position.extend(z);
         item.transform.scale = cmd.scale.extend(1.0);
