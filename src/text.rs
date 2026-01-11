@@ -1,7 +1,6 @@
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
-use bevy::sprite::Anchor;
 
 // Command struct for queuing text rendering
 #[derive(Clone)]
@@ -66,8 +65,6 @@ pub struct TextItem {
     pub transform: &'static mut Transform,
     pub font: &'static mut TextFont,
     pub color: &'static mut TextColor,
-    pub layout: &'static mut TextLayout,
-    pub anchor: &'static mut Anchor,
     pub visibility: &'static mut Visibility,
     pub layers: Option<&'static mut RenderLayers>,
 }
@@ -86,18 +83,33 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
 
     // Recycle
     for (mut item, (layer_id, index, cmd)) in query.iter_mut().zip(flat_commands.iter()) {
-        item.text.0 = cmd.text.clone();
+
+        if item.text.0 != cmd.text {
+            item.text.0 = cmd.text.clone();
+        }
 
         // Calculate z-index based on layer and index to ensure proper layering
         let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.00001);
 
-        item.transform.translation = Vec3::new(cmd.position.x, cmd.position.y, z);
+        // Update transform only if changed
+        if item.transform.translation != Vec3::new(cmd.position.x, cmd.position.y, z) {
+            item.transform.translation = Vec3::new(cmd.position.x, cmd.position.y, z);
+        }
 
-        item.font.font_size = cmd.size;
-        item.color.0 = cmd.color;
-        *item.layout = TextLayout::default();
-        *item.anchor = Anchor::default();
-        *item.visibility = Visibility::Visible;
+        // Update font size only if changed
+        if item.font.font_size != cmd.size {
+            item.font.font_size = cmd.size;
+        }
+
+        // Update color only if changed
+        if item.color.0 != cmd.color {
+            item.color.0 = cmd.color;
+        }
+
+        // Update visibility
+        if *item.visibility != Visibility::Visible {
+            *item.visibility = Visibility::Visible;
+        }
 
         let target_layer = RenderLayers::layer(*layer_id);
         if let Some(ref mut l) = item.layers {
@@ -117,8 +129,6 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
                 Transform::from_xyz(cmd.position.x, cmd.position.y, 1.0),
                 TextFont { font_size: cmd.size, ..default() },
                 TextColor(cmd.color),
-                TextLayout::default(),
-                Anchor::default(),
                 Visibility::Visible,
                 ImmediateText,
                 RenderLayers::layer(*layer_id),
@@ -128,7 +138,9 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
 
     // Hide
     for mut item in query.iter_mut().skip(drawn_count) {
-        *item.visibility = Visibility::Hidden;
+        if *item.visibility != Visibility::Hidden {
+            *item.visibility = Visibility::Hidden;
+        }
     }
 
     // Cleanup

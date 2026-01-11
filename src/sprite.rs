@@ -58,7 +58,7 @@ pub struct SpriteItem {
     pub entity: Entity,
     pub transform: &'static mut Transform,
     pub sprite: &'static mut Sprite,
-    pub visibility: &'static mut  Visibility,
+    pub visibility: &'static mut Visibility,
     pub layers: Option<&'static mut RenderLayers>,
 }
 
@@ -81,11 +81,30 @@ pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, m
         // Calculate z-index based on layer and index to ensure proper layering
         let z = (*layer_id as f32 * 100.0) + (*index as f32 * 0.00001);
 
-        item.transform.translation = cmd.position.extend(z);
-        item.transform.scale = cmd.scale.extend(1.0);
-        item.sprite.image = cmd.image.clone();
-        item.sprite.color = cmd.color;
-        *item.visibility = Visibility::Visible;
+        // Update transform only if changed
+        if item.transform.translation != cmd.position.extend(z) {
+            item.transform.translation = cmd.position.extend(z);
+        }
+
+        // Update scale if changed
+        if item.transform.scale.truncate() != cmd.scale {
+            item.transform.scale = cmd.scale.extend(1.0);
+        }
+
+        // Update sprite properties
+        if item.sprite.image != cmd.image {
+            item.sprite.image = cmd.image.clone();
+        }
+
+        // Update color if changed
+        if item.sprite.color != cmd.color {
+            item.sprite.color = cmd.color;
+        }
+
+        // Update visibility
+        if *item.visibility != Visibility::Visible {
+            *item.visibility = Visibility::Visible;
+        }
 
         // Apply the correct RenderLayer
         let target_layer = RenderLayers::layer(*layer_id);
@@ -119,7 +138,9 @@ pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, m
 
     // Hide unused entities
     for mut item in query.iter_mut().skip(drawn_count) {
-        *item.visibility = Visibility::Hidden;
+        if *item.visibility != Visibility::Hidden {
+            *item.visibility = Visibility::Hidden;
+        }
     }
 
     // Cleanup

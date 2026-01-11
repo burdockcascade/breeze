@@ -234,3 +234,14 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
         ).chain())
         .run();
 }
+
+fn debug_change_detection(
+    query: Query<(Entity, Ref<Transform>), With<crate::text::ImmediateText>>
+) {
+    for (entity, transform) in query.iter() {
+        // is_changed() returns true if the component was mutated this frame
+        if transform.is_changed() {
+            println!("Entity {:?} Changed! (Tick: {:?})", entity, transform.last_changed());
+        }
+    }
+}
