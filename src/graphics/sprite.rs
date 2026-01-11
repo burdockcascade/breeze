@@ -1,77 +1,71 @@
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
-use crate::engine::StableId;
+use crate::common::StableId;
 
-// Command struct for queuing text rendering
+// A command to draw a sprite
 #[derive(Clone)]
-pub struct TextCommand {
-    pub text: String,
+pub struct SpriteCommand {
+    pub image: Handle<Image>,
     pub position: Vec2,
-    pub size: f32,
+    pub scale: Vec2,
     pub color: Color,
 }
 
-// Resource to hold queued text commands
+// A queue of sprite commands to be rendered each frame
 #[derive(Resource, Default)]
-pub struct TextQueue(pub Vec<Vec<TextCommand>>);
+pub struct SpriteQueue(pub Vec<Vec<SpriteCommand>>);
 
-// Marker component for immediate text entities
+// Marker component for immediate mode sprites
 #[derive(Component)]
-pub struct ImmediateText;
+pub struct ImmediateSprite;
 
-pub struct TextContext<'a> {
-    pub queue: &'a mut TextQueue,
+pub struct SpriteContext<'a> {
+    pub queue: &'a mut SpriteQueue,
+    pub asset_server: &'a AssetServer,
     pub layer_id: usize,
 }
 
-impl<'a> TextContext<'a> {
+impl<'a> SpriteContext<'a> {
 
-    pub fn new(queue: &'a mut TextQueue, layer_id: usize) -> Self {
-        Self {
-            queue,
-            layer_id,
-        }
-    }
-
-    fn get_queue(&mut self) -> &mut Vec<TextCommand> {
+    fn get_queue(&mut self) -> &mut Vec<SpriteCommand> {
         if self.layer_id >= self.queue.0.len() {
             self.queue.0.resize_with(self.layer_id + 1, Vec::new);
         }
         &mut self.queue.0[self.layer_id]
     }
 
-    pub fn draw(&mut self, text: &str, x: f32, y: f32) {
-       self.draw_ext(text, x, y, 16.0, Color::BLACK);
+    /// Draw a sprite at (x, y) with default scale and color
+    pub fn draw(&mut self, image: &Handle<Image>, x: f32, y: f32) {
+        self.draw_ext(image, x, y, 1.0, Color::WHITE);
     }
 
-    /// Draw text with size and color
-    pub fn draw_ext(&mut self, text: &str, x: f32, y: f32, size: f32, color: Color) {
-        self.get_queue().push(TextCommand {
-            text: text.to_owned(),
+    /// Draw a scaled or tinted sprite
+    pub fn draw_ext(&mut self, image: &Handle<Image>, x: f32, y: f32, scale: f32, color: Color) {
+        self.get_queue().push(SpriteCommand {
+            image: image.clone(),
             position: Vec2::new(x, y),
-            size,
+            scale: Vec2::splat(scale),
             color,
         });
     }
 
 }
 
-// QueryData struct for mutable access to text item components
+// Query data for sprite items
 #[derive(QueryData)]
 #[query_data(mutable)]
-pub struct TextItem {
+pub struct SpriteItem {
     pub entity: Entity,
     pub id: Option<&'static StableId>,
-    pub text: &'static mut Text2d,
     pub transform: &'static mut Transform,
-    pub font: &'static mut TextFont,
-    pub color: &'static mut TextColor,
+    pub sprite: &'static mut Sprite,
     pub visibility: &'static mut Visibility,
     pub layers: Option<&'static mut RenderLayers>,
 }
 
-pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut query: Query<TextItem, With<ImmediateText>>, mut flat_commands: Local<Vec<(usize, usize, TextCommand)>>) {
+// System to render sprites from the sprite queue
+pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, mut query: Query<SpriteItem, With<ImmediateSprite>>, mut flat_commands: Local<Vec<(usize, usize, SpriteCommand)>>) {
 
     // Flatten commands (same as before)
     flat_commands.clear();
@@ -110,34 +104,29 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
         // Does an entity exist for this draw call index?
         if let Some(Some(item)) = entity_lookup.get_mut(global_index) {
 
-            // Update text only if changed
-            if item.text.0 != cmd.text {
-                item.text.0 = cmd.text.clone();
-            }
-
-            // Calculate z-index based on layer and index to ensure proper layering
+            // Target properties
             let z = (*layer_id as f32 * 100.0) + (global_index as f32 * 0.00001);
+            let target_pos = cmd.position.extend(z);
+            let target_scale = cmd.scale.extend(1.0);
 
-            // Update transform only if changed
-            if item.transform.translation != Vec3::new(cmd.position.x, cmd.position.y, z) {
-                item.transform.translation = Vec3::new(cmd.position.x, cmd.position.y, z);
+            // Change Detection Optimization
+            if item.transform.translation != target_pos {
+                item.transform.translation = target_pos;
             }
-
-            // Update font size only if changed
-            if item.font.font_size != cmd.size {
-                item.font.font_size = cmd.size;
+            if item.transform.scale != target_scale {
+                item.transform.scale = target_scale;
             }
-
-            // Update color only if changed
-            if item.color.0 != cmd.color {
-                item.color.0 = cmd.color;
+            if item.sprite.image != cmd.image {
+                item.sprite.image = cmd.image.clone();
             }
-
-            // Update visibility
+            if item.sprite.color != cmd.color {
+                item.sprite.color = cmd.color;
+            }
             if *item.visibility != Visibility::Visible {
                 *item.visibility = Visibility::Visible;
             }
 
+            // Layer Check
             if let Some(ref mut l) = item.layers {
                 if **l != target_layer { **l = target_layer; }
             } else {
@@ -148,18 +137,20 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
             entity_lookup[global_index] = None;
 
         } else {
-            // Spawn new entity
             commands.spawn((
-                Text2d::new(cmd.text.clone()),
-                Transform::from_xyz(cmd.position.x, cmd.position.y, 1.0),
-                TextFont { font_size: cmd.size, ..default() },
-                TextColor(cmd.color),
+                Sprite {
+                    image: cmd.image.clone(),
+                    color: cmd.color,
+                    ..default()
+                },
+                Transform::from_translation(cmd.position.extend(0.0)),
                 Visibility::Visible,
-                ImmediateText,
+                ImmediateSprite,
                 StableId(global_index),
                 target_layer,
             ));
         }
+
     }
 
     // Hide or Despawn Unused Entities
@@ -183,4 +174,5 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
     for list in queue.0.iter_mut() {
         list.clear();
     }
+
 }

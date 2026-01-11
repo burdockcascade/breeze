@@ -29,9 +29,6 @@ pub struct CameraContext<'a> {
 }
 
 impl<'a> CameraContext<'a> {
-    pub fn new(transform: &'a mut Transform, projection: &'a mut OrthographicProjection) -> Self {
-        Self { transform, projection }
-    }
 
     /// Move the camera by a relative amount (dx, dy)
     pub fn move_by(&mut self, x: f32, y: f32) {

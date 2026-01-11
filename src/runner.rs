@@ -4,99 +4,13 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_vector_shapes::painter::ShapePainter;
 use bevy_vector_shapes::Shape2dPlugin;
-use crate::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
-use crate::camera::{manage_cameras, CameraMode, CameraQueue};
-use crate::input::InputContext;
-use crate::shapes::ShapeContext;
-use crate::sprite::{render_sprites, SpriteContext, SpriteQueue};
-use crate::text::{render_text, TextContext, TextQueue};
-use crate::window::WindowContext;
-
-pub struct AppConfig {
-    pub title: String,
-    pub width: u32,
-    pub height: u32,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            title: "Untitled".to_string(),
-            width: 800,
-            height: 600,
-        }
-    }
-}
-
-pub struct Context<'a> {
-    pub time: &'a Time,
-    pub input: InputContext<'a>,
-    pub asset_server: &'a AssetServer,
-    pub audio: AudioContext<'a>,
-    pub window: WindowContext<'a>,
-}
-
-impl<'a> Context<'a> {
-    /// Load an image from the "assets" folder
-    pub fn load_image(&self, path: &str) -> Handle<Image> {
-        self.asset_server.load(path.to_owned())
-    }
-}
-
-pub struct LayerContext<'a, 'w, 's> {
-    pub layer_id: usize,
-    pub sprites: SpriteContext<'a>,
-    pub text: TextContext<'a>,
-    pub shapes: ShapeContext<'a, 'w, 's>,
-    pub camera_queue: &'a mut CameraQueue,
-}
-
-impl<'a, 'w, 's> LayerContext<'a, 'w, 's> {
-    // New API: Set the camera mode for this specific layer
-    pub fn set_camera(&mut self, mode: CameraMode) {
-        self.camera_queue.0.push((self.layer_id, mode));
-    }
-}
-
-pub struct DrawContext<'a, 'w, 's> {
-    pub time: &'a Time,
-    painter: &'a mut ShapePainter<'w, 's>,
-    sprite_queue: &'a mut SpriteQueue,
-    text_queue: &'a mut TextQueue,
-    asset_server: &'a AssetServer,
-    camera_queue: &'a mut CameraQueue,
-    clear_color: &'a mut ClearColor,
-}
-
-impl <'a, 'w, 's> DrawContext<'a, 'w, 's> {
-
-    pub fn with_layer<F>(&mut self, id: usize, f: F)
-    where
-        F: FnOnce(&mut LayerContext)
-    {
-        let mut ctx = LayerContext {
-            layer_id: id,
-            sprites: SpriteContext {
-                queue: self.sprite_queue, // Re-borrow the queue
-                asset_server: self.asset_server,
-                layer_id: id, // Set the ID
-            },
-            text: TextContext {
-                queue: self.text_queue,
-                layer_id: id,
-            },
-            shapes: ShapeContext::new(self.painter, id),
-            camera_queue: self.camera_queue,
-        };
-
-        f(&mut ctx);
-    }
-
-    /// Set the background clear color for the next frame
-    pub fn clear_background(&mut self, color: Color) {
-        self.clear_color.0 = color;
-    }
-}
+use crate::core::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
+use crate::camera::{manage_cameras, CameraQueue};
+use crate::context::{AppConfig, Context, DrawContext};
+use crate::core::input::InputContext;
+use crate::graphics::sprite::{render_sprites, SpriteQueue};
+use crate::graphics::text::{render_text, TextQueue};
+use crate::core::window::WindowContext;
 
 pub trait Game: Send + Sync + 'static {
     fn init(&mut self, _ctx: &mut Context) {}
@@ -106,9 +20,6 @@ pub trait Game: Send + Sync + 'static {
 
 #[derive(Default)]
 pub struct InternalState { initialized: bool }
-
-#[derive(Component)]
-pub struct StableId(pub usize);
 
 #[derive(SystemParam)]
 pub struct EngineContext<'w, 's> {
