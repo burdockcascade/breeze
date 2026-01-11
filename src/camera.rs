@@ -79,7 +79,7 @@ pub fn manage_cameras(mut commands: Commands, mut queue: ResMut<CameraQueue>, mu
         let target_layer = RenderLayers::layer(layer);
         let mut found = false;
 
-        // --- A. UPDATE EXISTING CAMERAS ---
+        // Update existing cameras
         for mut item in query.iter_mut() {
             if item.layers == &target_layer {
                 found = true;
@@ -117,8 +117,7 @@ pub fn manage_cameras(mut commands: Commands, mut queue: ResMut<CameraQueue>, mu
             }
         }
 
-        // --- B. SPAWN NEW CAMERAS ---
-        // Fix: Spawn the specific camera type (2D/3D) WITH the generic Camera component
+        // Spawn new camera if not found
         if !found && mode != CameraMode::None {
 
             // Common Configuration

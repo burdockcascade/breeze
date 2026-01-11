@@ -5,7 +5,7 @@ use bevy::window::PrimaryWindow;
 use bevy_vector_shapes::painter::ShapePainter;
 use bevy_vector_shapes::Shape2dPlugin;
 use crate::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
-use crate::camera::{manage_cameras, CameraContext, CameraMode, CameraQueue};
+use crate::camera::{manage_cameras, CameraMode, CameraQueue};
 use crate::input::InputContext;
 use crate::shapes::ShapeContext;
 use crate::sprite::{render_sprites, SpriteContext, SpriteQueue};
@@ -48,7 +48,6 @@ pub struct LayerContext<'a, 'w, 's> {
     pub sprites: SpriteContext<'a>,
     pub text: TextContext<'a>,
     pub shapes: ShapeContext<'a, 'w, 's>,
-    pub camera: Option<CameraContext<'a>>,
     pub camera_queue: &'a mut CameraQueue,
 }
 
@@ -87,7 +86,6 @@ impl <'a, 'w, 's> DrawContext<'a, 'w, 's> {
                 layer_id: id,
             },
             shapes: ShapeContext::new(self.painter, id),
-            camera: None,
             camera_queue: self.camera_queue,
         };
 
@@ -132,6 +130,7 @@ pub struct EngineContext<'w, 's> {
     // Window / Camera (for mouse calculation)
     pub q_window: Query<'w, 's, &'static mut Window, With<PrimaryWindow>>,
     pub q_camera: Query<'w, 's, (&'static Camera, &'static GlobalTransform, Option<&'static RenderLayers>), With<Camera>>,
+
     // Clear Color
     pub clear_color: ResMut<'w, ClearColor>,
 
@@ -145,8 +144,7 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
 
         let mut cursor_world_pos = Vec2::ZERO;
 
-        // READ THE TARGET LAYER FROM CONFIG
-        let target_layer_id = 0; // FIXME: Make this configurable per game!
+        let target_layer_id = 0;
 
         // Find the camera that renders this specific layer
         let input_camera = engine.q_camera.iter().find(|(_, _, layers)| {
