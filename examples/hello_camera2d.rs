@@ -8,7 +8,6 @@ struct MyGame {
 impl Game for MyGame {
 
     fn update(&mut self, ctx: &mut Context) {
-        let speed = 200.0 * ctx.time.elapsed().as_secs_f32();
 
         let speed = 400.0 * ctx.time.delta_secs();
 
@@ -38,7 +37,7 @@ impl Game for MyGame {
 
     fn draw(&mut self, ctx: &mut DrawContext) {
 
-        let x_pos = ctx.time.elapsed_secs().sin() * 200.0;
+        ctx.clear_background(Color::from(DARK_SLATE_GRAY));
 
         ctx.with_layer(1, |ui| {
             ui.set_camera(CameraMode::default());
@@ -49,6 +48,8 @@ impl Game for MyGame {
         });
 
         ctx.with_layer(0, |world2d| {
+
+            let x_pos = ctx.time.elapsed_secs().sin() * 200.0;
 
             world2d.set_camera(CameraMode::Camera2d {
                 position: self.camera_pos,
