@@ -109,9 +109,6 @@ pub trait Game: Send + Sync + 'static {
 #[derive(Default)]
 pub struct InternalState { initialized: bool }
 
-#[derive(Component)]
-pub struct MainCamera;
-
 #[derive(SystemParam)]
 pub struct EngineContext<'w, 's> {
 
