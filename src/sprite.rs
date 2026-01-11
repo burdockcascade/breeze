@@ -63,13 +63,13 @@ pub struct SpriteItem {
 }
 
 // System to render sprites from the sprite queue
-pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, mut query: Query<SpriteItem, With<ImmediateSprite>>) {
+pub fn render_sprites( mut commands: Commands, mut queue: ResMut<SpriteQueue>, mut query: Query<SpriteItem, With<ImmediateSprite>>, mut flat_commands: Local<Vec<(usize, usize, SpriteCommand)>>) {
 
     // Flatten
-    let mut flat_commands = Vec::new();
+    flat_commands.clear();
     for (layer_id, cmds) in queue.0.iter().enumerate() {
-        for (i, cmd) in cmds.iter().enumerate() {
-            flat_commands.push((layer_id, i, cmd));
+        for (index, cmd) in cmds.iter().enumerate() {
+            flat_commands.push((layer_id, index, cmd.clone()));
         }
     }
 

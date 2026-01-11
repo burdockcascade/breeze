@@ -69,13 +69,13 @@ pub struct TextItem {
     pub layers: Option<&'static mut RenderLayers>,
 }
 
-pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut query: Query<TextItem, With<ImmediateText>>) {
+pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut query: Query<TextItem, With<ImmediateText>>, mut flat_commands: Local<Vec<(usize, usize, TextCommand)>>) {
 
     // Flatten
-    let mut flat_commands = Vec::new();
+    flat_commands.clear();
     for (layer_id, cmds) in queue.0.iter().enumerate() {
-        for (i, cmd) in cmds.iter().enumerate() {
-            flat_commands.push((layer_id, i, cmd));
+        for (index, cmd) in cmds.iter().enumerate() {
+            flat_commands.push((layer_id, index, cmd.clone()));
         }
     }
 
