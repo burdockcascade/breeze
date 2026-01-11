@@ -137,9 +137,17 @@ pub fn render_text(mut commands: Commands, mut queue: ResMut<TextQueue>, mut que
     }
 
     // Hide
+    const MAX_RESERVE: usize = 100; // Keep 100 spares
+    let mut reserve_count = 0;
+
     for mut item in query.iter_mut().skip(drawn_count) {
-        if *item.visibility != Visibility::Hidden {
-            *item.visibility = Visibility::Hidden;
+        if reserve_count < MAX_RESERVE {
+            if *item.visibility != Visibility::Hidden {
+                *item.visibility = Visibility::Hidden;
+            }
+            reserve_count += 1;
+        } else {
+            commands.entity(item.entity).despawn();
         }
     }
 
