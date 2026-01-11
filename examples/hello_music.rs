@@ -14,7 +14,6 @@ impl Game for MyGame {
     }
 
     fn update(&mut self, ctx: &mut Context) {
-        println!("Music playing: {}", self.music_playing);
         // Pause music when space is pressed
         if ctx.input.key_pressed(KeyCode::KeyP) {
             if !self.music_playing {
