@@ -53,7 +53,7 @@ pub fn manage_cameras(mut commands: Commands, mut queue: ResMut<CameraQueue>, mu
                         if item.cam2d.is_none() {
                             commands.entity(item.entity)
                                 .remove::<Camera3d>()
-                                .insert(Camera2d);
+                                .insert(Camera2d::default());
                         }
 
                         // Update Position
@@ -90,7 +90,7 @@ pub fn manage_cameras(mut commands: Commands, mut queue: ResMut<CameraQueue>, mu
             match mode {
                 CameraMode::Camera2d { position, scale } => {
                     commands.spawn((
-                        Camera2d,
+                        Camera2d::default(),
                         camera_base,
                         target_layer,
                         Projection::Orthographic(OrthographicProjection {
