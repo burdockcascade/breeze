@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/burdockcascade/breeze/compare/breeze-v0.2.0...breeze-v0.2.1) (2026-01-13)
+
+
+### ♻️ Code Refactoring
+
+* update Cargo.toml with improved metadata and exclude unnecessary files ([257432a](https://github.com/burdockcascade/breeze/commit/257432a341a62f69690c1be06bfea163f2b51954))
+
 ## [0.2.0](https://github.com/burdockcascade/breeze/compare/breeze-v0.1.1...breeze-v0.2.0) (2026-01-11)
 
 

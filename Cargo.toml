@@ -1,6 +1,6 @@
 [package]
 name = "breeze"
-version = "0.2.0"
+version = "0.2.1"
 description = "A wrapper around Bevy for easier game development."
 authors = ["Peter Richmond"]
 keywords = [
