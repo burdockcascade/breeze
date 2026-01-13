@@ -1,8 +1,8 @@
+use bevy::prelude::*;
 use bevy_vector_shapes::painter::ShapePainter;
 use crate::core::audio::AudioContext;
 use crate::camera::{CameraMode, CameraQueue};
 use crate::core::input::InputContext;
-use crate::prelude::{AssetServer, ClearColor, Color, Handle, Image, Time};
 use crate::graphics::shapes::ShapeContext;
 use crate::graphics::sprite::{SpriteContext, SpriteQueue};
 use crate::graphics::text::{TextContext, TextQueue};
