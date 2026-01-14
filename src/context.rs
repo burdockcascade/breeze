@@ -1,9 +1,8 @@
 use bevy::prelude::*;
-use bevy_vector_shapes::painter::ShapePainter;
 use crate::core::audio::AudioContext;
 use crate::camera::{CameraMode, CameraQueue};
 use crate::core::input::InputContext;
-use crate::graphics::shapes::ShapeContext;
+use crate::graphics::shapes::*;
 use crate::graphics::sprite::{SpriteContext, SpriteQueue};
 use crate::graphics::text::{TextContext, TextQueue};
 use crate::core::window::WindowContext;
@@ -39,24 +38,24 @@ impl<'a> Context<'a> {
     }
 }
 
-pub struct LayerContext<'a, 'w, 's> {
+pub struct LayerContext<'a> {
     pub layer_id: usize,
     pub sprites: SpriteContext<'a>,
     pub text: TextContext<'a>,
-    pub shapes: ShapeContext<'a, 'w, 's>,
+pub shapes: ShapeContext<'a>,
     pub camera_queue: &'a mut CameraQueue,
 }
 
-impl<'a, 'w, 's> LayerContext<'a, 'w, 's> {
+impl<'a> LayerContext<'a> {
     // New API: Set the camera mode for this specific layer
     pub fn set_camera(&mut self, mode: CameraMode) {
         self.camera_queue.0.push((self.layer_id, mode));
     }
 }
 
-pub struct DrawContext<'a, 'w, 's> {
+pub struct DrawContext<'a> {
     pub time: &'a Time,
-    pub painter: &'a mut ShapePainter<'w, 's>,
+    pub shape_queue: &'a mut ShapeQueue,
     pub sprite_queue: &'a mut SpriteQueue,
     pub text_queue: &'a mut TextQueue,
     pub asset_server: &'a AssetServer,
@@ -64,7 +63,7 @@ pub struct DrawContext<'a, 'w, 's> {
     pub clear_color: &'a mut ClearColor,
 }
 
-impl <'a, 'w, 's> DrawContext<'a, 'w, 's> {
+impl <'a> DrawContext<'a> {
 
     pub fn with_layer<F>(&mut self, id: usize, f: F)
     where
@@ -81,7 +80,7 @@ impl <'a, 'w, 's> DrawContext<'a, 'w, 's> {
                 queue: self.text_queue,
                 layer_id: id,
             },
-            shapes: ShapeContext::new(self.painter, id),
+            shapes: ShapeContext::new(self.shape_queue, id),
             camera_queue: self.camera_queue,
         };
 

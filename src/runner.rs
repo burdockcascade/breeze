@@ -3,8 +3,6 @@ use bevy::ecs::system::SystemParam;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_vector_shapes::painter::ShapePainter;
-use bevy_vector_shapes::Shape2dPlugin;
 use crate::core::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
 use crate::camera::{manage_cameras, CameraQueue};
 use crate::context::{AppConfig, Context, DrawContext};
@@ -12,6 +10,7 @@ use crate::core::input::InputContext;
 use crate::graphics::sprite::{render_sprites, SpriteQueue};
 use crate::graphics::text::{render_text, TextQueue};
 use crate::core::window::WindowContext;
+use crate::graphics::shapes::{render_shapes, GlobalShapeResources, ShapeQueue};
 
 pub trait Game: Send + Sync + 'static {
     fn init(&mut self, _ctx: &mut Context) {}
@@ -29,14 +28,12 @@ pub struct EngineContext<'w, 's> {
     pub time: Res<'w, Time>,
     pub asset_server: Res<'w, AssetServer>,
 
-    // Graphics
-    pub painter: ShapePainter<'w, 's>,
-
     // Queues
     pub camera_queue: ResMut<'w, CameraQueue>,
     pub text_queue: ResMut<'w, TextQueue>,
     pub sprite_queue: ResMut<'w, SpriteQueue>,
     pub audio_queue: ResMut<'w, AudioQueue>,
+    pub shape_queue: ResMut<'w, ShapeQueue>,
 
     // Input
     pub keys: Res<'w, ButtonInput<KeyCode>>,
@@ -109,7 +106,7 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
         {
             let mut draw_ctx = DrawContext {
                 time: &engine.time,
-                painter: &mut engine.painter,
+                shape_queue: &mut engine.shape_queue,
                 sprite_queue: &mut engine.sprite_queue,
                 text_queue: &mut engine.text_queue,
                 asset_server: &engine.asset_server,
@@ -135,7 +132,8 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
             })
             .disable::<LogPlugin>()
         )
-        .add_plugins(Shape2dPlugin::default())
+        .init_resource::<GlobalShapeResources>()
+        .insert_resource(ShapeQueue::default())
         .insert_resource(TextQueue::default())
         .insert_resource(SpriteQueue::default())
         .insert_resource(AudioQueue::default())
@@ -147,6 +145,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
             internal_game_loop::<G>,
             render_text,
             render_sprites,
+            render_shapes,
             play_audio,
             manage_cameras
         ).chain())

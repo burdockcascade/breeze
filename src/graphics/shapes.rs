@@ -1,59 +1,140 @@
-use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
-use bevy_vector_shapes::prelude::*;
+use bevy::camera::visibility::RenderLayers;
 
-pub struct ShapeContext<'a, 'w, 's> {
-    pub painter: &'a mut ShapePainter<'w, 's>,
+/// Resource to store the Unit meshes (Circle, Rect) so we don't recreate them every frame.
+#[derive(Resource)]
+pub struct GlobalShapeResources {
+    pub circle: Handle<Mesh>,
+    pub rect: Handle<Mesh>,
+}
+
+impl FromWorld for GlobalShapeResources {
+    fn from_world(world: &mut World) -> Self {
+        let mut meshes = world.resource_mut::<Assets<Mesh>>();
+        // Create a unit circle (radius 1.0)
+        let circle = meshes.add(Circle::new(1.0));
+        // Create a unit rectangle (1.0 x 1.0)
+        let rect = meshes.add(Rectangle::new(1.0, 1.0));
+        Self { circle, rect }
+    }
+}
+
+/// Commands to be executed by the renderer
+#[derive(Clone, Copy)]
+pub enum ShapeCommand {
+    Circle { x: f32, y: f32, radius: f32, color: Color, layer: usize },
+    Rect { x: f32, y: f32, w: f32, h: f32, color: Color, layer: usize },
+    Line { x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Color, layer: usize },
+    Ring { x: f32, y: f32, radius: f32, thickness: f32, color: Color, layer: usize },
+}
+
+/// Resource to queue up shape commands for the current frame
+#[derive(Resource, Default)]
+pub struct ShapeQueue(pub Vec<ShapeCommand>);
+
+/// Component to tag shapes that should be despawned at the end of the frame
+/// Also holds handles to assets that need to be manually cleaned up (dynamic meshes/materials)
+#[derive(Component)]
+pub struct TransientResources {
+    pub mesh: Option<Handle<Mesh>>,
+    pub material: Option<Handle<ColorMaterial>>,
+}
+
+pub struct ShapeContext<'a> {
+    pub queue: &'a mut ShapeQueue,
     pub layer_id: usize,
 }
 
-impl<'a, 'w, 's> ShapeContext<'a, 'w, 's> {
-
-    pub fn new(painter: &'a mut ShapePainter<'w, 's>, layer_id: usize) -> Self {
-        Self { painter, layer_id }
+impl<'a> ShapeContext<'a> {
+    pub fn new(queue: &'a mut ShapeQueue, layer_id: usize) -> Self {
+        Self { queue, layer_id }
     }
 
-    // Helper to apply the layer before drawing
-    fn prepare(&mut self) {
-        self.painter.render_layers = Some(RenderLayers::layer(self.layer_id));
-
-        // Reset transform to identity so we draw in World Space (optional, depends on preference)
-        // self.painter.transform = Transform::IDENTITY;
-    }
-
-    /// Draw a filled circle
     pub fn circle(&mut self, x: f32, y: f32, radius: f32, color: Color) {
-        self.prepare();
-        self.painter.set_translation(Vec3::new(x, y, 0.0));
-        self.painter.color = color;
-        self.painter.circle(radius);
+        self.queue.0.push(ShapeCommand::Circle { x, y, radius, color, layer: self.layer_id });
     }
 
-    /// Draw a filled rectangle
     pub fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, color: Color) {
-        self.prepare();
-        self.painter.set_translation(Vec3::new(x, y, 0.0));
-        self.painter.color = color;
-        self.painter.rect(Vec2::new(w, h));
+        self.queue.0.push(ShapeCommand::Rect { x, y, w, h, color, layer: self.layer_id });
     }
 
-    // Draw a line between two points
     pub fn line(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Color) {
-        self.prepare();
-        self.painter.color = color;
-        self.painter.thickness = thickness;
-        self.painter.line(Vec3::new(x1, y1, 0.0), Vec3::new(x2, y2, 0.0));
+        self.queue.0.push(ShapeCommand::Line { x1, y1, x2, y2, thickness, color, layer: self.layer_id });
     }
 
-    /// Draw a hollow ring (just to show versatility)
     pub fn ring(&mut self, x: f32, y: f32, radius: f32, thickness: f32, color: Color) {
-        self.prepare();
-        self.painter.set_translation(Vec3::new(x, y, 0.0));
-        self.painter.color = color;
-        self.painter.hollow = true;
-        self.painter.thickness = thickness;
-        self.painter.circle(radius);
-        self.painter.hollow = false;
+        self.queue.0.push(ShapeCommand::Ring { x, y, radius, thickness, color, layer: self.layer_id });
+    }
+}
+
+pub fn render_shapes(mut commands: Commands, mut queue: ResMut<ShapeQueue>, global_shapes: Res<GlobalShapeResources>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, q_transient: Query<(Entity, &TransientResources)>) {
+
+    // Clean up previous frame's transient shapes
+    for (entity, resources) in q_transient.iter() {
+        if let Some(handle) = &resources.mesh {
+            meshes.remove(handle);
+        }
+        if let Some(handle) = &resources.material {
+            materials.remove(handle);
+        }
+        commands.entity(entity).despawn();
     }
 
+    // Process the queue
+    for command in queue.0.drain(..) {
+        match command {
+            ShapeCommand::Circle { x, y, radius, color, layer } => {
+                let material = materials.add(ColorMaterial::from(color));
+                commands.spawn((
+                    Mesh2d(global_shapes.circle.clone()),
+                    MeshMaterial2d(material.clone()),
+                    Transform::from_xyz(x, y, 0.0).with_scale(Vec3::splat(radius)),
+                    RenderLayers::layer(layer),
+                    TransientResources { mesh: None, material: Some(material) },
+                ));
+            }
+            ShapeCommand::Rect { x, y, w, h, color, layer } => {
+                let material = materials.add(ColorMaterial::from(color));
+                commands.spawn((
+                    Mesh2d(global_shapes.rect.clone()),
+                    MeshMaterial2d(material.clone()),
+                    Transform::from_xyz(x, y, 0.0).with_scale(Vec3::new(w, h, 1.0)),
+                    RenderLayers::layer(layer),
+                    TransientResources { mesh: None, material: Some(material) },
+                ));
+            }
+            ShapeCommand::Line { x1, y1, x2, y2, thickness, color, layer } => {
+                let p1 = Vec2::new(x1, y1);
+                let p2 = Vec2::new(x2, y2);
+                let center = (p1 + p2) / 2.0;
+                let length = p1.distance(p2);
+                let angle = (p2.y - p1.y).atan2(p2.x - p1.x);
+
+                let material = materials.add(ColorMaterial::from(color));
+                commands.spawn((
+                    Mesh2d(global_shapes.rect.clone()),
+                    MeshMaterial2d(material.clone()),
+                    Transform::from_xyz(center.x, center.y, 0.0)
+                        .with_rotation(Quat::from_rotation_z(angle))
+                        .with_scale(Vec3::new(length, thickness, 1.0)),
+                    RenderLayers::layer(layer),
+                    TransientResources { mesh: None, material: Some(material) },
+                ));
+            }
+            ShapeCommand::Ring { x, y, radius, thickness, color, layer } => {
+                let inner = radius - thickness / 2.0;
+                let outer = radius + thickness / 2.0;
+                let mesh_handle = meshes.add(Annulus::new(inner, outer));
+                let mat_handle = materials.add(ColorMaterial::from(color));
+                
+                commands.spawn((
+                    Mesh2d(mesh_handle.clone()),
+                    MeshMaterial2d(mat_handle.clone()),
+                    Transform::from_xyz(x, y, 0.0),
+                    RenderLayers::layer(layer),
+                    TransientResources { mesh: Some(mesh_handle), material: Some(mat_handle) },
+                ));
+            }
+        }
+    }
 }
