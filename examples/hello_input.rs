@@ -33,7 +33,7 @@ impl Game for MyGame {
         // World layer
         ctx.with_layer(0, |world2d| {
             world2d.set_camera(CameraMode::default());
-            world2d.shapes.circle(self.pos.x, self.pos.y, 30.0, self.color);
+            world2d.shapes.circle(vec2(self.pos.x, self.pos.y), 30.0, self.color);
         });
 
         // UI layer

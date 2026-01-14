@@ -9,6 +9,11 @@ pub enum CameraMode {
         position: Vec2,
         scale: f32
     },
+    // New 3D Mode
+    Camera3d {
+        position: Vec3,
+        target: Vec3,
+    }
 }
 
 impl Default for CameraMode {
@@ -59,6 +64,7 @@ pub fn manage_cameras(mut commands: Commands, mut queue: ResMut<CameraQueue>, mu
                         // Update Position
                         if let Some(ref mut t) = item.transform {
                             t.translation = position.extend(0.0);
+                            t.look_to(Vec3::NEG_Z, Vec3::Y); // Reset rotation for 2D
                         }
 
                         // Update Projection
@@ -73,14 +79,37 @@ pub fn manage_cameras(mut commands: Commands, mut queue: ResMut<CameraQueue>, mu
                             }
                         }
                     }
+                    CameraMode::Camera3d { position, target } => {
+                        // Switch to 3D if needed
+                        if item.cam3d.is_none() {
+                            commands.entity(item.entity)
+                                .remove::<Camera2d>()
+                                .insert(Camera3d::default());
+                        }
+
+                        // Update Position & Rotation safely
+                        if let Some(ref mut t) = item.transform {
+                            t.translation = position;
+
+                            // Only look_at if we aren't standing exactly on the target
+                            if position != target {
+                                t.look_at(target, Vec3::Y);
+                            }
+                        }
+
+                        // Update Projection to Perspective
+                        if let Some(ref mut proj) = item.projection {
+                            if !matches!(**proj, Projection::Perspective(_)) {
+                                **proj = Projection::Perspective(PerspectiveProjection::default());
+                            }
+                        }
+                    }
                 }
             }
         }
 
         // Spawn new camera if not found
         if !found && mode != CameraMode::None {
-
-            // Common Configuration
             let camera_base = Camera {
                 order: layer as isize,
                 clear_color: if layer == 0 { ClearColorConfig::Default } else { ClearColorConfig::None },
@@ -100,7 +129,16 @@ pub fn manage_cameras(mut commands: Commands, mut queue: ResMut<CameraQueue>, mu
                         Transform::from_translation(position.extend(0.0)),
                     ));
                 },
-                CameraMode::None => { /* Do nothing */ }
+                CameraMode::Camera3d { position, target } => {
+                    commands.spawn((
+                        Camera3d::default(),
+                        camera_base,
+                        target_layer,
+                        Projection::Perspective(PerspectiveProjection::default()),
+                        Transform::from_translation(position).looking_at(target, Vec3::Y),
+                    ));
+                },
+                CameraMode::None => { }
             }
         }
     }

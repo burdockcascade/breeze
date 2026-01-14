@@ -1,0 +1,105 @@
+use breeze::prelude::*;
+
+struct ShapeGallery {
+    camera_x: f32,
+    offsets: Vec<f32>,
+}
+
+impl Game for ShapeGallery {
+    fn update(&mut self, ctx: &mut Context) {
+        let speed = 10.0;
+        let dt = ctx.time.delta_secs();
+
+        if ctx.input.key_down(KeyCode::ArrowLeft) {
+            self.camera_x -= speed * dt;
+        }
+        if ctx.input.key_down(KeyCode::ArrowRight) {
+            self.camera_x += speed * dt;
+        }
+    }
+
+    fn draw(&mut self, ctx: &mut DrawContext) {
+
+        // 2. Clear background
+        ctx.clear_background(Color::from(WHITE));
+
+        ctx.with_layer(0, |world| {
+            // 3. Setup Camera
+            // We position the camera back (z=8) and up (y=4), looking at the current x position
+            world.set_camera(CameraMode::Camera3d {
+                position: Vec3::new(self.camera_x, 4.0, 8.0),
+                target: Vec3::new(self.camera_x, 0.0, 0.0),
+            });
+
+            // 4. Draw Floor
+            world.shapes.plane(Vec3::ZERO, Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2), 50.0, Color::from(DARK_GRAY));
+
+            // 5. Draw a Row of Shapes
+            // We'll use a helper variable for spacing
+            let spacing = 3.0;
+            let time = ctx.time.elapsed_secs();
+
+            let rot = |i: usize| -> Quat {
+                // Use the stored offset for this index (fallback to 0.0 if missing)
+                let offset = *self.offsets.get(i).unwrap_or(&0.0);
+
+                // Your requested calculation + offset
+                Quat::from_rotation_y(time + offset) * Quat::from_rotation_x((time + offset) * 0.5)
+            };
+
+            // x = 0: Cube
+            world.shapes.cube(
+                Vec3::new(0.0, 0.5, 0.0),
+                rot(1),
+                1.0,
+                Color::from(BLUE)
+            );
+
+            // x = 3: Sphere
+            world.shapes.sphere(
+                Vec3::new(spacing, 0.5, 0.0),
+                0.5,
+                Color::from(RED)
+            );
+
+            // x = 6: Cylinder
+            world.shapes.cylinder(
+                Vec3::new(spacing * 2.0, 1.0, 0.0),
+                rot(2),
+                0.5,
+                2.0,
+                Color::from(LIME)
+            );
+
+            // x = 12: Torus
+            world.shapes.torus(
+                Vec3::new(spacing * 3.0, 0.5, 0.0),
+                rot(3),
+                0.6,
+                0.2,
+                Color::from(FUCHSIA)
+            );
+
+            // x = 15: Cone
+            world.shapes.cone(
+                Vec3::new(spacing * 4.0, 1.0, 0.0),
+                rot(4),
+                1.0,
+                2.0,
+                Color::from(ORANGE)
+            );
+
+            // 6. Draw Text Instructions (in world space or screen space)
+            // Note: Currently text is 2D screen space.
+            // It will stick to the screen even as 3D moves, which is perfect for UI.
+            world.text.draw("Use Left/Right Arrow Keys to View Shapes", -200.0, 250.0);
+        });
+    }
+}
+
+fn main() {
+    run(AppConfig {
+        title: "Breeze - Shape Gallery".into(),
+        ..default()
+    }, ShapeGallery { camera_x: 0.0, offsets: vec![0.0, 1.0, 2.0, 3.0, 4.0] });
+}

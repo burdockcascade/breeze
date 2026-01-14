@@ -56,10 +56,10 @@ impl Game for MyGame {
                 scale: self.camera_scale,
             });
 
-            world2d.shapes.circle(x_pos, 0.0, 60.0, Color::from(RED));
+            world2d.shapes.circle(vec2(x_pos, 0.0), 60.0, Color::from(RED));
 
             // Draw a static Rectangle
-            world2d.shapes.rect(0.0, -200.0, 400.0, 50.0, Color::from(BLUE_VIOLET));
+            world2d.shapes.rect(vec2(0.0, -200.0), vec2(400.0, 50.0), Color::from(BLUE_VIOLET));
         });
 
     }

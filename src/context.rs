@@ -42,7 +42,7 @@ pub struct LayerContext<'a> {
     pub layer_id: usize,
     pub sprites: SpriteContext<'a>,
     pub text: TextContext<'a>,
-pub shapes: ShapeContext<'a>,
+    pub shapes: ShapeContext<'a>,
     pub camera_queue: &'a mut CameraQueue,
 }
 

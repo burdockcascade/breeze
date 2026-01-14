@@ -35,7 +35,7 @@ impl Game for AnalogClock {
 
             // --- Drawing the Clock Face ---
             // Draw the outer ring
-            world.shapes.ring(0.0, 0.0, 200.0, 10.0, Color::from(WHITE));
+            world.shapes.ring(vec2(0.0, 0.0), 200.0, 10.0, Color::from(WHITE));
 
             // Draw hour markers
             for i in 0..12 {
@@ -49,7 +49,7 @@ impl Game for AnalogClock {
                 let x2 = angle.cos() * outer_radius;
                 let y2 = angle.sin() * outer_radius;
 
-                world.shapes.line(x1, y1, x2, y2, 4.0, Color::from(BLACK));
+                world.shapes.line(vec2(x1, y1), vec2(x2, y2), 4.0, Color::from(BLACK));
             }
 
             // --- Drawing the Hands ---
@@ -74,7 +74,7 @@ impl Game for AnalogClock {
             draw_hand(world, second_angle, 170.0, 2.0, Color::from(RED));
 
             // Center cap
-            world.shapes.circle(0.0, 0.0, 8.0, Color::from(RED));
+            world.shapes.circle(vec2(0.0, 0.0), 8.0, Color::from(RED));
 
             // Draw digital time text for reference
             let time_str = format!("{:02}:{:02}:{:02} UTC", raw_hours, raw_minutes, raw_seconds);
@@ -88,7 +88,7 @@ fn draw_hand(world: &mut LayerContext, angle: f32, length: f32, thickness: f32, 
     let x = angle.cos() * length;
     let y = angle.sin() * length;
     // Draw line from center (0,0) to calculated tip
-    world.shapes.line(0.0, 0.0, x, y, thickness, color);
+    world.shapes.line(vec2(0.0, 0.0), vec2(x, y), thickness, color);
 }
 
 fn main() {
