@@ -50,21 +50,26 @@ impl<'a> ShapeContext<'a> {
         Self { queue, layer_id }
     }
 
+    /// Draw a circle at (x, y) with given radius
     pub fn circle(&mut self, x: f32, y: f32, radius: f32, color: Color) {
         self.queue.0.push(ShapeCommand::Circle { x, y, radius, color, layer: self.layer_id });
     }
 
+    /// Draw a rectangle at (x, y) with width w and height h
     pub fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, color: Color) {
         self.queue.0.push(ShapeCommand::Rect { x, y, w, h, color, layer: self.layer_id });
     }
 
+    /// Draw a line from (x1, y1) to (x2, y2) with given thickness
     pub fn line(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Color) {
         self.queue.0.push(ShapeCommand::Line { x1, y1, x2, y2, thickness, color, layer: self.layer_id });
     }
 
+    /// Draw a ring at (x, y) with given radius and thickness
     pub fn ring(&mut self, x: f32, y: f32, radius: f32, thickness: f32, color: Color) {
         self.queue.0.push(ShapeCommand::Ring { x, y, radius, thickness, color, layer: self.layer_id });
     }
+
 }
 
 pub fn render_shapes(mut commands: Commands, mut queue: ResMut<ShapeQueue>, global_shapes: Res<GlobalShapeResources>, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, q_transient: Query<(Entity, &TransientResources)>) {
