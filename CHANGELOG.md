@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.2](https://github.com/burdockcascade/breeze/compare/breeze-v0.2.1...breeze-v0.2.2) (2026-01-14)
+
+
+### ♻️ Code Refactoring
+
+* restructure shape rendering system with new command queue and global resources ([b062c2b](https://github.com/burdockcascade/breeze/commit/b062c2b0b258e62a3797eee80abc07b176ab29e5))
+* update imports to use bevy::prelude for consistency ([28f887b](https://github.com/burdockcascade/breeze/commit/28f887bba5a24fa822b0c99a77079d236fc80d35))
+* use default constructor for Camera2d instances in camera.rs ([c8319b2](https://github.com/burdockcascade/breeze/commit/c8319b249c44817c85f6fecdcfced7071adecffd))
+
 ## [0.2.1](https://github.com/burdockcascade/breeze/compare/breeze-v0.2.0...breeze-v0.2.1) (2026-01-13)
 
 
