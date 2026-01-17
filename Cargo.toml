@@ -25,6 +25,8 @@ exclude = [
     ".gitignore",
     ".release-please-manifest.json",
     "release-please-config.json",
+    "assets/**",
+    "examples/**",
 ]
 
 [dependencies]
