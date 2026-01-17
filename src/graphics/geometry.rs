@@ -216,21 +216,19 @@ pub struct GeometryRenderer<'w, 's> {
 /// This is used by the UnifiedRenderer to process commands from the global queue.
 pub fn process_geometry(
     commands: &mut Commands,
-    resources: &mut GeometryRenderer, // Note: Needs mutable access for asset removal
-    entity_opt: Option<Entity>,       // The recycled entity (if any)
+    resources: &mut GeometryRenderer,
+    entity_opt: Option<Entity>,
     command: GeometryCommand
 ) {
     // 1. CLEANUP OLD ASSETS (If reusing an entity)
     if let Some(entity) = entity_opt {
         if let Ok((_, old_res)) = resources.q_transient.get(entity) {
-            // Important: We only remove Materials, we KEEP global meshes (Circle, etc.)
-            // But wait, our TransientResources struct stored 'mesh' only if it was custom.
             if let Some(handle) = &old_res.mesh { resources.meshes.remove(handle); }
             if let Some(handle) = &old_res.material_2d { resources.materials_2d.remove(handle); }
             if let Some(handle) = &old_res.material_3d { resources.materials_3d.remove(handle); }
         }
 
-        // Remove old components to avoid conflicts (e.g. switching Mesh2d -> Mesh3d)
+        // Remove old components so we don't end up with a Mesh2d AND a Mesh3d on the same entity
         commands.entity(entity)
             .remove::<Mesh2d>()
             .remove::<MeshMaterial2d<ColorMaterial>>()
@@ -239,34 +237,35 @@ pub fn process_geometry(
             .remove::<SceneRoot>();
     }
 
-    // 2. PREPARE NEW ENTITY
-    // If we have an entity, use it. Otherwise, spawn a new one.
+    // 2. PREPARE ENTITY (Recycle or Spawn)
     let mut cmd_entity = if let Some(e) = entity_opt {
         commands.entity(e)
     } else {
         commands.spawn(())
     };
 
-    // 3. INSERT BUNDLES
+    // 3. INSERT BUNDLES (Using cmd_entity!)
     match command {
         // --- UNLIT 2D ---
         GeometryCommand::Circle { position, radius, color, layer } => {
             let material = resources.materials_2d.add(ColorMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh2d(resources.global_geo.circle.clone()),
                 MeshMaterial2d(material.clone()),
                 Transform::from_translation(position.extend(0.0)).with_scale(Vec3::splat(radius)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
             ));
         }
         GeometryCommand::Rect { position, size, color, layer } => {
             let material = resources.materials_2d.add(ColorMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh2d(resources.global_geo.rect.clone()),
                 MeshMaterial2d(material.clone()),
                 Transform::from_translation(position.extend(0.0)).with_scale(size.extend(1.0)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
             ));
         }
@@ -274,122 +273,132 @@ pub fn process_geometry(
             let center = (start + end) / 2.0;
             let length = start.distance(end);
             let angle = (end.y - start.y).atan2(end.x - start.x);
-
             let material = resources.materials_2d.add(ColorMaterial::from(color));
-            commands.spawn((
+
+            cmd_entity.insert((
                 Mesh2d(resources.global_geo.rect.clone()),
                 MeshMaterial2d(material.clone()),
                 Transform::from_translation(center.extend(0.0))
                     .with_rotation(Quat::from_rotation_z(angle))
                     .with_scale(Vec3::new(length, thickness, 1.0)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
             ));
         }
         GeometryCommand::Ring { position, radius, thickness, color, layer } => {
             let inner = radius - thickness / 2.0;
             let outer = radius + thickness / 2.0;
-            // Note: Meshes are added to resources.meshes (Assets<Mesh>)
             let mesh_handle = resources.meshes.add(Annulus::new(inner, outer));
             let mat_handle = resources.materials_2d.add(ColorMaterial::from(color));
 
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh2d(mesh_handle.clone()),
                 MeshMaterial2d(mat_handle.clone()),
                 Transform::from_translation(position.extend(0.0)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: Some(mesh_handle), material_2d: Some(mat_handle), material_3d: None },
             ));
         }
 
-        // --- LIT 3D & 2D ---
+        // --- LIT 3D ---
         GeometryCommand::Cube { position, rotation, size, color, layer } => {
             let material = resources.materials_3d.add(StandardMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh3d(resources.global_geo.cuboid.clone()),
                 MeshMaterial3d(material.clone()),
                 Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::splat(size)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
             ));
         }
         GeometryCommand::Cuboid { position, rotation, size, color, layer } => {
             let material = resources.materials_3d.add(StandardMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh3d(resources.global_geo.cuboid.clone()),
                 MeshMaterial3d(material.clone()),
                 Transform::from_translation(position).with_rotation(rotation).with_scale(size),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
             ));
         }
         GeometryCommand::Sphere { position, radius, color, layer } => {
             let material = resources.materials_3d.add(StandardMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh3d(resources.global_geo.sphere.clone()),
                 MeshMaterial3d(material.clone()),
                 Transform::from_translation(position).with_scale(Vec3::splat(radius)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
             ));
         }
         GeometryCommand::Cylinder { position, rotation, radius, height, color, layer } => {
             let material = resources.materials_3d.add(StandardMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh3d(resources.global_geo.cylinder.clone()),
                 MeshMaterial3d(material.clone()),
                 Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::new(radius, height, radius)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
             ));
         }
         GeometryCommand::Cone { position, rotation, radius, height, color, layer } => {
             let material = resources.materials_3d.add(StandardMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh3d(resources.global_geo.cone.clone()),
                 MeshMaterial3d(material.clone()),
-                Transform::from_translation(position).with_rotation(rotation),
+                Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::new(radius, height, radius)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
             ));
         }
         GeometryCommand::Torus { position, rotation, radius, tube_radius, color, layer } => {
             let material = resources.materials_3d.add(StandardMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh3d(resources.global_geo.torus.clone()),
                 MeshMaterial3d(material.clone()),
                 Transform::from_translation(position).with_rotation(rotation),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
             ));
         }
         GeometryCommand::Plane { position, rotation, size, color, layer } => {
             let material = resources.materials_3d.add(StandardMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh3d(resources.global_geo.plane.clone()),
                 MeshMaterial3d(material.clone()),
                 Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::new(size, 1.0, size)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
             ));
         }
         GeometryCommand::Quad { position, rotation, size, color, layer } => {
             let material = resources.materials_3d.add(StandardMaterial::from(color));
-            commands.spawn((
+            cmd_entity.insert((
                 Mesh3d(resources.global_geo.plane.clone()),
                 MeshMaterial3d(material.clone()),
                 Transform::from_translation(position)
                     .with_rotation(rotation)
                     .with_scale(Vec3::new(size.x, 1.0, size.y)),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
             ));
         }
         GeometryCommand::Model { position, rotation, scale, scene, layer } => {
-            commands.spawn((
+            cmd_entity.insert((
                 SceneRoot(scene),
                 Transform::from_translation(position).with_rotation(rotation).with_scale(scale),
                 RenderLayers::layer(layer),
+                Visibility::Visible,
                 TransientResources { mesh: None, material_2d: None, material_3d: None },
             ));
         }

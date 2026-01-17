@@ -2,11 +2,9 @@ use bevy::prelude::*;
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::system::SystemParam;
 use std::cell::RefCell;
-
-// Import the Unified Types (Assuming you created src/graphics/commands.rs)
 use crate::graphics::commands::{GraphicsCommand, GraphicsQueue};
 
-// --- 1. COMMAND DATA ---
+// ... SpriteCommand, ImmediateSprite, SpriteContext (Same as before) ...
 #[derive(Clone)]
 pub struct SpriteCommand {
     pub image: Handle<Image>,
@@ -16,13 +14,10 @@ pub struct SpriteCommand {
     pub layer: usize,
 }
 
-// --- 2. MARKER COMPONENT (For Cleanup) ---
 #[derive(Component)]
 pub struct ImmediateSprite;
 
-// --- 3. CONTEXT (Frontend) ---
 pub struct SpriteContext<'a> {
-    // Reference to the Global Queue via RefCell
     pub queue: &'a RefCell<&'a mut GraphicsQueue>,
     pub asset_server: &'a AssetServer,
     pub layer_id: usize,
@@ -53,25 +48,49 @@ impl<'a> SpriteContext<'a> {
 // --- 4. RENDERER RESOURCES (Backend) ---
 #[derive(SystemParam)]
 pub struct SpriteRenderer<'w, 's> {
-    // Query to find sprites from the previous frame to clean them up
-    pub q_sprites: Query<'w, 's, Entity, With<ImmediateSprite>>,
+    pub q_sprites: Query<'w, 's, (
+        Entity,
+        &'static mut Sprite,
+        &'static mut Transform,
+        &'static mut Visibility,
+        &'static mut RenderLayers
+    ), With<ImmediateSprite>>,
+
+    pub _marker: std::marker::PhantomData<&'s ()>,
 }
 
-// --- 5. SPAWN HELPER (Called by UnifiedRenderer) ---
+// --- OPTIMIZED PROCESS FUNCTION ---
 pub fn process_sprite(
     commands: &mut Commands,
+    renderer: &mut SpriteRenderer, // Now takes mutable renderer
     entity_opt: Option<Entity>,
     cmd: SpriteCommand
 ) {
-    let mut e = if let Some(entity) = entity_opt {
-        commands.entity(entity)
-    } else {
-        commands.spawn((
-            ImmediateSprite, // Only needed on creation
-        ))
-    };
+    // 1. FAST PATH: Direct Mutation (Zero Allocation, Zero Command Overhead)
+    if let Some(entity) = entity_opt {
+        if let Ok((_, mut sprite, mut transform, mut vis, mut layers)) = renderer.q_sprites.get_mut(entity) {
 
-    e.insert((
+            // Just assign the values! Bevy is very fast at this.
+            sprite.image = cmd.image;
+            sprite.color = cmd.color;
+            // Reset standard fields in case they were changed (optional but safe)
+            sprite.flip_x = false;
+            sprite.flip_y = false;
+            sprite.custom_size = None;
+
+            transform.translation = cmd.position.extend(0.0);
+            transform.scale = cmd.scale.extend(1.0);
+            transform.rotation = Quat::IDENTITY; // Reset rotation
+
+            *vis = Visibility::Visible; // Wake up hidden sprite
+            *layers = RenderLayers::layer(cmd.layer);
+
+            return; // Done! skipped commands.spawn entirely.
+        }
+    }
+
+    // 2. SLOW PATH: Spawn New Entity (First run or pool empty)
+    commands.spawn((
         Sprite {
             image: cmd.image,
             color: cmd.color,
@@ -80,6 +99,7 @@ pub fn process_sprite(
         Transform::from_translation(cmd.position.extend(0.0))
             .with_scale(cmd.scale.extend(1.0)),
         RenderLayers::layer(cmd.layer),
-        Visibility::Visible, // Un-hide if recycled
+        Visibility::Visible,
+        ImmediateSprite,
     ));
 }

@@ -20,17 +20,17 @@ pub struct UnifiedRenderer<'w, 's> {
 }
 
 pub fn render_graphics(mut renderer: UnifiedRenderer) {
-    // 1. COLLECT AVAILABLE ENTITIES (Pooling)
-    // We pop entities from these vectors. If empty, we spawn new ones.
+
+    // 1. PREPARE POOLS OF AVAILABLE ENTITIES
 
     // Geometry Pool
-    // We filter for entities that have TransientResources (our geometry marker)
     let mut pool_geo: Vec<Entity> = renderer.geo_resources.q_transient.iter()
         .map(|(e, _)| e)
         .collect();
 
     // Sprite Pool
     let mut pool_sprites: Vec<Entity> = renderer.sprite_resources.q_sprites.iter()
+        .map(|(e, ..)| e)
         .collect();
 
     // Text Pool
@@ -50,7 +50,7 @@ pub fn render_graphics(mut renderer: UnifiedRenderer) {
             },
             GraphicsCommand::Sprite(cmd) => {
                 let entity = pool_sprites.pop();
-                process_sprite(&mut renderer.commands, entity, cmd);
+                process_sprite(&mut renderer.commands, &mut renderer.sprite_resources, entity, cmd);
             },
             GraphicsCommand::Text(cmd) => {
                 let entity = pool_text.pop();
