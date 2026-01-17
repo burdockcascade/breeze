@@ -33,6 +33,7 @@ impl Default for AppConfig {
 
 pub struct Context<'a> {
     pub time: &'a Time,
+    pub fps: &'a FpsResource,
     pub input: InputContext<'a>,
     pub asset_server: &'a AssetServer,
     pub audio: AudioContext<'a>,
@@ -50,6 +51,10 @@ impl<'a> Context<'a> {
 
     pub fn load_font(&self, path: &str) -> Handle<Font> {
         self.asset_server.load(path.to_owned())
+    }
+
+    pub fn fps(&self) -> f32 {
+        self.fps.show_value
     }
 }
 

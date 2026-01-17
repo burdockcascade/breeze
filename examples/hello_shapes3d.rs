@@ -102,6 +102,12 @@ impl Game for ShapeGallery {
             // It will stick to the screen even as 3D moves, which is perfect for UI.
             world.text.draw("Use Left/Right Arrow Keys to View Shapes", vec2(-200.0, 250.0));
         });
+
+        // UI Layer to show fps
+        ctx.with_layer(1, |ui| {
+            ui.set_camera(CameraMode::default());
+            ui.draw_fps(vec2(300.0, 250.0), Color::BLACK);
+        });
     }
 }
 

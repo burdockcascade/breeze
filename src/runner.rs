@@ -73,6 +73,7 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
         {
             let mut ctx = Context {
                 time: &engine.time,
+                fps: &engine.fps,
                 input: InputContext {
                     keys: &engine.keys,
                     mouse_buttons: &engine.mouse_buttons,
