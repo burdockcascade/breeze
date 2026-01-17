@@ -36,7 +36,7 @@ impl<'a> TextContext<'a> {
     pub fn draw_ext(&self, text: impl Into<String>, position: Vec2, size: f32, color: Color) {
         self.draw_pro(&Handle::default(), text, position, size, color);
     }
-    
+
     /// Draw text at the specified position.
     pub fn draw_pro(&self, font: &Handle<Font>, text: impl Into<String>, position: Vec2, size: f32, color: Color) {
         self.queue.borrow_mut().0.push(GraphicsCommand::Text(TextCommand {
@@ -58,14 +58,20 @@ pub struct TextRenderer<'w, 's> {
 }
 
 // --- 5. SPAWN HELPER (Called by UnifiedRenderer) ---
-pub fn spawn_text(
+pub fn process_text(
     commands: &mut Commands,
-    _renderer: &TextRenderer,
+    entity_opt: Option<Entity>,
     cmd: TextCommand
 ) {
-    // Note: Assuming Bevy 0.15+ Text components (Text2d, TextFont, TextColor)
-    // If using Bevy 0.14, replace with Text2dBundle.
-    commands.spawn((
+    let mut e = if let Some(entity) = entity_opt {
+        commands.entity(entity)
+    } else {
+        commands.spawn((
+            ImmediateText,
+        ))
+    };
+
+    e.insert((
         Text2d::new(cmd.text),
         TextFont {
             font: cmd.font,
@@ -76,6 +82,5 @@ pub fn spawn_text(
         Transform::from_translation(cmd.position.extend(0.0)),
         RenderLayers::layer(cmd.layer),
         Visibility::Visible,
-        ImmediateText, // Mark for cleanup
     ));
 }

@@ -214,7 +214,40 @@ pub struct GeometryRenderer<'w, 's> {
 
 /// Helper function to spawn a single geometry command.
 /// This is used by the UnifiedRenderer to process commands from the global queue.
-pub fn spawn_geometry(commands: &mut Commands, resources: &mut GeometryRenderer, command: GeometryCommand) {
+pub fn process_geometry(
+    commands: &mut Commands,
+    resources: &mut GeometryRenderer, // Note: Needs mutable access for asset removal
+    entity_opt: Option<Entity>,       // The recycled entity (if any)
+    command: GeometryCommand
+) {
+    // 1. CLEANUP OLD ASSETS (If reusing an entity)
+    if let Some(entity) = entity_opt {
+        if let Ok((_, old_res)) = resources.q_transient.get(entity) {
+            // Important: We only remove Materials, we KEEP global meshes (Circle, etc.)
+            // But wait, our TransientResources struct stored 'mesh' only if it was custom.
+            if let Some(handle) = &old_res.mesh { resources.meshes.remove(handle); }
+            if let Some(handle) = &old_res.material_2d { resources.materials_2d.remove(handle); }
+            if let Some(handle) = &old_res.material_3d { resources.materials_3d.remove(handle); }
+        }
+
+        // Remove old components to avoid conflicts (e.g. switching Mesh2d -> Mesh3d)
+        commands.entity(entity)
+            .remove::<Mesh2d>()
+            .remove::<MeshMaterial2d<ColorMaterial>>()
+            .remove::<Mesh3d>()
+            .remove::<MeshMaterial3d<StandardMaterial>>()
+            .remove::<SceneRoot>();
+    }
+
+    // 2. PREPARE NEW ENTITY
+    // If we have an entity, use it. Otherwise, spawn a new one.
+    let mut cmd_entity = if let Some(e) = entity_opt {
+        commands.entity(e)
+    } else {
+        commands.spawn(())
+    };
+
+    // 3. INSERT BUNDLES
     match command {
         // --- UNLIT 2D ---
         GeometryCommand::Circle { position, radius, color, layer } => {

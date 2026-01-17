@@ -64,33 +64,42 @@ pub struct LightRenderer<'w, 's> {
 }
 
 // --- 5. SPAWN HELPER (Called by UnifiedRenderer) ---
-pub fn spawn_light(
+pub fn process_light(
     commands: &mut Commands,
-    _renderer: &LightRenderer,
+    entity_opt: Option<Entity>,
     cmd: LightCommand
 ) {
+    let mut e = if let Some(entity) = entity_opt {
+        commands.entity(entity)
+    } else {
+        commands.spawn((
+            ImmediateLight,
+        ))
+    };
+
+    // Important: We must ensure we clean up the *wrong* light type if switching
+    // e.g. Point -> Directional.
+    // The safest "recycle" is to remove both light components and add the new one.
+    e.remove::<PointLight>().remove::<DirectionalLight>();
+
     match cmd {
         LightCommand::Point { position, color, intensity, radius, layer } => {
-            commands.spawn((
+            e.insert((
                 PointLight {
                     color,
                     intensity,
                     range: radius,
-                    shadows_enabled: true, // Default to true for Breeze
+                    shadows_enabled: true,
                     ..default()
                 },
                 Transform::from_translation(position),
                 RenderLayers::layer(layer),
                 Visibility::Visible,
-                ImmediateLight, // Mark for cleanup
             ));
         }
         LightCommand::Directional { direction, color, illuminance, layer } => {
-            // Directional lights need a rotation to define direction
-            // We look towards the direction from zero
             let rotation = Quat::from_rotation_arc(Vec3::NEG_Z, direction.normalize_or_zero());
-
-            commands.spawn((
+            e.insert((
                 DirectionalLight {
                     color,
                     illuminance,
@@ -100,7 +109,6 @@ pub fn spawn_light(
                 Transform::from_rotation(rotation),
                 RenderLayers::layer(layer),
                 Visibility::Visible,
-                ImmediateLight, // Mark for cleanup
             ));
         }
     }

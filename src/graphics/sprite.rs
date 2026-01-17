@@ -58,23 +58,28 @@ pub struct SpriteRenderer<'w, 's> {
 }
 
 // --- 5. SPAWN HELPER (Called by UnifiedRenderer) ---
-pub fn spawn_sprite(
+pub fn process_sprite(
     commands: &mut Commands,
-    _renderer: &SpriteRenderer,
+    entity_opt: Option<Entity>,
     cmd: SpriteCommand
 ) {
-    commands.spawn((
+    let mut e = if let Some(entity) = entity_opt {
+        commands.entity(entity)
+    } else {
+        commands.spawn((
+            ImmediateSprite, // Only needed on creation
+        ))
+    };
+
+    e.insert((
         Sprite {
             image: cmd.image,
             color: cmd.color,
             ..default()
         },
-        // Z-Index: You might want to sort this later,
-        // but for now 0.0 relies on Bevy's internal draw order or RenderLayers.
         Transform::from_translation(cmd.position.extend(0.0))
             .with_scale(cmd.scale.extend(1.0)),
         RenderLayers::layer(cmd.layer),
-        Visibility::Visible,
-        ImmediateSprite, // Important: Marks this for deletion next frame
+        Visibility::Visible, // Un-hide if recycled
     ));
 }
