@@ -26,7 +26,7 @@ impl Game for ShapeGallery {
         ctx.with_layer(0, |world| {
 
             // Setup lighting
-            world.shapes.directional_light(
+            world.lights.directional(
                 Vec3::new(-0.5, -1.0, -0.5),
                 Color::from(WHITE),
                 10_000.0
@@ -40,7 +40,7 @@ impl Game for ShapeGallery {
             });
 
             // 4. Draw Floor
-            world.shapes.plane(Vec3::ZERO, Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2), 50.0, Color::from(DARK_GRAY));
+            world.draw3d.plane(Vec3::ZERO, Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2), 50.0, Color::from(DARK_GRAY));
 
             // 5. Draw a Row of Shapes
             // We'll use a helper variable for spacing
@@ -56,7 +56,7 @@ impl Game for ShapeGallery {
             };
 
             // x = 0: Cube
-            world.shapes.cube(
+            world.draw3d.cube(
                 Vec3::new(0.0, 0.5, 0.0),
                 rot(1),
                 1.0,
@@ -64,14 +64,14 @@ impl Game for ShapeGallery {
             );
 
             // x = 3: Sphere
-            world.shapes.sphere(
+            world.draw3d.sphere(
                 Vec3::new(spacing, 0.5, 0.0),
                 0.5,
                 Color::from(RED)
             );
 
             // x = 6: Cylinder
-            world.shapes.cylinder(
+            world.draw3d.cylinder(
                 Vec3::new(spacing * 2.0, 1.0, 0.0),
                 rot(2),
                 0.5,
@@ -80,7 +80,7 @@ impl Game for ShapeGallery {
             );
 
             // x = 12: Torus
-            world.shapes.torus(
+            world.draw3d.torus(
                 Vec3::new(spacing * 3.0, 0.5, 0.0),
                 rot(3),
                 0.6,
@@ -89,7 +89,7 @@ impl Game for ShapeGallery {
             );
 
             // x = 15: Cone
-            world.shapes.cone(
+            world.draw3d.cone(
                 Vec3::new(spacing * 4.0, 1.0, 0.0),
                 rot(4),
                 1.0,

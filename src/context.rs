@@ -1,11 +1,13 @@
+use std::cell::RefCell;
 use bevy::prelude::*;
 use crate::core::audio::AudioContext;
 use crate::camera::{CameraMode, CameraQueue};
 use crate::core::input::InputContext;
-use crate::graphics::shapes::*;
+use crate::graphics::geometry::*;
 use crate::graphics::sprite::{SpriteContext, SpriteQueue};
 use crate::graphics::text::{TextContext, TextQueue};
 use crate::core::window::WindowContext;
+use crate::graphics::lights::{LightContext, LightQueue};
 
 pub struct AppConfig {
     pub title: String,
@@ -36,13 +38,20 @@ impl<'a> Context<'a> {
     pub fn load_image(&self, path: &str) -> Handle<Image> {
         self.asset_server.load(path.to_owned())
     }
+
+    /// Load a scene from the "assets" folder
+    pub fn load_scene(&self, path: &str) -> Handle<Scene> {
+        self.asset_server.load(path.to_owned())
+    }
 }
 
 pub struct LayerContext<'a> {
     pub layer_id: usize,
     pub sprites: SpriteContext<'a>,
     pub text: TextContext<'a>,
-    pub shapes: ShapeContext<'a>,
+    pub draw2d: Geometry2d<'a>,
+    pub draw3d: Geometry3d<'a>,
+    pub lights: LightContext<'a>,
     pub camera_queue: &'a mut CameraQueue,
 }
 
@@ -55,7 +64,8 @@ impl<'a> LayerContext<'a> {
 
 pub struct DrawContext<'a> {
     pub time: &'a Time,
-    pub shape_queue: &'a mut ShapeQueue,
+    pub geometry_queue: &'a mut GeometryQueue,
+    pub light_queue: &'a mut LightQueue,
     pub sprite_queue: &'a mut SpriteQueue,
     pub text_queue: &'a mut TextQueue,
     pub asset_server: &'a AssetServer,
@@ -69,6 +79,7 @@ impl <'a> DrawContext<'a> {
     where
         F: FnOnce(&mut LayerContext)
     {
+        let queue_cell = RefCell::new(&mut *self.geometry_queue);
         let mut ctx = LayerContext {
             layer_id: id,
             sprites: SpriteContext {
@@ -79,8 +90,10 @@ impl <'a> DrawContext<'a> {
             text: TextContext {
                 queue: self.text_queue,
                 layer_id: id,
-            },
-            shapes: ShapeContext::new(self.shape_queue, id),
+            },  
+            draw2d: Geometry2d { queue: &queue_cell, layer_id: id },
+            draw3d: Geometry3d { queue: &queue_cell, layer_id: id },
+            lights: LightContext::new(self.light_queue, id),
             camera_queue: self.camera_queue,
         };
 

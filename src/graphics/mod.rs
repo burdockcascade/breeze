@@ -1,3 +1,4 @@
 pub mod text;
 pub mod sprite;
-pub mod shapes;
+pub mod geometry;
+pub mod lights;

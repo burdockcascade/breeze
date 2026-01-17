@@ -10,7 +10,8 @@ use crate::core::input::InputContext;
 use crate::graphics::sprite::{render_sprites, SpriteQueue};
 use crate::graphics::text::{render_text, TextQueue};
 use crate::core::window::WindowContext;
-use crate::graphics::shapes::{render_shapes, GlobalShapeResources, ShapeQueue};
+use crate::graphics::geometry::{render_geometry, Geometry2d, GeometryQueue, GlobalGeometryResources};
+use crate::graphics::lights::{render_lights, LightQueue};
 
 pub trait Game: Send + Sync + 'static {
     fn init(&mut self, _ctx: &mut Context) {}
@@ -32,8 +33,9 @@ pub struct EngineContext<'w, 's> {
     pub camera_queue: ResMut<'w, CameraQueue>,
     pub text_queue: ResMut<'w, TextQueue>,
     pub sprite_queue: ResMut<'w, SpriteQueue>,
+    pub light_queue: ResMut<'w, LightQueue>,
     pub audio_queue: ResMut<'w, AudioQueue>,
-    pub shape_queue: ResMut<'w, ShapeQueue>,
+    pub geometry_queue: ResMut<'w, GeometryQueue>,
 
     // Input
     pub keys: Res<'w, ButtonInput<KeyCode>>,
@@ -106,8 +108,9 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
         {
             let mut draw_ctx = DrawContext {
                 time: &engine.time,
-                shape_queue: &mut engine.shape_queue,
+                geometry_queue: &mut engine.geometry_queue,
                 sprite_queue: &mut engine.sprite_queue,
+                light_queue: &mut engine.light_queue,
                 text_queue: &mut engine.text_queue,
                 asset_server: &engine.asset_server,
                 clear_color: &mut engine.clear_color,
@@ -132,8 +135,9 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
             })
             .disable::<LogPlugin>()
         )
-        .init_resource::<GlobalShapeResources>()
-        .insert_resource(ShapeQueue::default())
+        .init_resource::<GlobalGeometryResources>()
+        .insert_resource(GeometryQueue::default())
+        .insert_resource(LightQueue::default())
         .insert_resource(TextQueue::default())
         .insert_resource(SpriteQueue::default())
         .insert_resource(AudioQueue::default())
@@ -145,7 +149,8 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
             internal_game_loop::<G>,
             render_text,
             render_sprites,
-            render_shapes,
+            render_lights,
+            render_geometry,
             play_audio,
             manage_cameras
         ).chain())
