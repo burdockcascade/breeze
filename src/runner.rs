@@ -7,6 +7,7 @@ use bevy::window::PrimaryWindow;
 use crate::core::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
 use crate::camera::{manage_cameras, CameraQueue};
 use crate::context::{AppConfig, Context, DrawContext};
+use crate::core::fps::{monitor_fps, FpsResource};
 use crate::core::input::InputContext;
 use crate::core::window::WindowContext;
 
@@ -27,6 +28,8 @@ pub struct InternalState { initialized: bool }
 pub struct EngineContext<'w, 's> {
     pub time: Res<'w, Time>,
     pub asset_server: Res<'w, AssetServer>,
+
+    pub fps: Res<'w, FpsResource>,
 
     // Queues
     pub camera_queue: ResMut<'w, CameraQueue>,
@@ -96,6 +99,7 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
         {
             let mut draw_ctx = DrawContext {
                 time: &engine.time,
+                fps: &engine.fps,
                 graphics_queue: &mut engine.graphics_queue,
                 asset_server: &engine.asset_server,
                 clear_color: &mut engine.clear_color,
@@ -120,6 +124,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
             .disable::<LogPlugin>()
         )
         .init_resource::<GlobalGeometryResources>()
+        .init_resource::<FpsResource>()
         .insert_resource(GraphicsQueue::default()) // The One Queue
         .insert_resource(AudioQueue::default())
         .insert_resource(ActiveLoops::default())
@@ -128,6 +133,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
         .insert_non_send_resource(game)
         .add_systems(Update, (
             internal_game_loop::<G>,
+            monitor_fps,
             render_graphics,
             play_audio,
             manage_cameras

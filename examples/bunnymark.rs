@@ -127,9 +127,9 @@ impl Game for BunnyMarkGame {
         // Draw UI
         ctx.with_layer(1, |layer| {
             layer.set_camera(CameraMode::default());
-            let info = format!("Bunnies: {}\nFPS: {:.0}\n(Space) Add 1000\n(P) Pause",
-                               self.bunnies.len(),
-                               1.0 / ctx.time.delta_secs()
+            layer.draw_fps(vec2(300.0, 250.0), Color::BLACK);
+            let info = format!("Bunnies: {}\n(Space) Add 1000\n(P) Pause",
+                               self.bunnies.len()
             );
             layer.text.draw_ext(&info, vec2(-0.0, 100.0), 20.0, Color::BLACK);
         });
