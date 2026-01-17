@@ -13,7 +13,7 @@ use crate::core::window::WindowContext;
 
 use crate::graphics::commands::GraphicsQueue;
 use crate::graphics::renderer::render_graphics;
-use crate::graphics::geometry::GlobalGeometryResources;
+use crate::graphics::geometry::{GlobalGeometryResources, MaterialCache};
 
 pub trait Game: Send + Sync + 'static {
     fn init(&mut self, _ctx: &mut Context) {}
@@ -125,6 +125,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
             .disable::<LogPlugin>()
         )
         .init_resource::<GlobalGeometryResources>()
+        .init_resource::<MaterialCache>()
         .init_resource::<FpsResource>()
         .insert_resource(GraphicsQueue::default()) // The One Queue
         .insert_resource(AudioQueue::default())

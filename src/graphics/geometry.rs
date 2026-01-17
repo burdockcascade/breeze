@@ -3,6 +3,54 @@ use bevy::prelude::*;
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::system::SystemParam;
 use crate::graphics::commands::{GraphicsCommand, GraphicsQueue};
+
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+
+// Helper to make Color hashable for the HashMap key
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HashableColor(Color);
+
+impl Eq for HashableColor {}
+
+impl Hash for HashableColor {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // Convert to linear RGBA (f32) and hash bits
+        let vec = self.0.to_linear().to_f32_array();
+        for f in vec {
+            state.write_u32(f.to_bits());
+        }
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct MaterialCache {
+    pub solid_2d: HashMap<HashableColor, Handle<ColorMaterial>>,
+    pub solid_3d: HashMap<HashableColor, Handle<StandardMaterial>>,
+}
+
+impl MaterialCache {
+    pub fn get_2d(&mut self, color: Color, assets: &mut Assets<ColorMaterial>) -> Handle<ColorMaterial> {
+        let key = HashableColor(color);
+        if let Some(handle) = self.solid_2d.get(&key) {
+            return handle.clone();
+        }
+        let handle = assets.add(ColorMaterial::from(color));
+        self.solid_2d.insert(key, handle.clone());
+        handle
+    }
+
+    pub fn get_3d(&mut self, color: Color, assets: &mut Assets<StandardMaterial>) -> Handle<StandardMaterial> {
+        let key = HashableColor(color);
+        if let Some(handle) = self.solid_3d.get(&key) {
+            return handle.clone();
+        }
+        let handle = assets.add(StandardMaterial::from(color));
+        self.solid_3d.insert(key, handle.clone());
+        handle
+    }
+}
+
 // =================================================================================
 //  BACKEND: RESOURCES & COMMANDS
 // =================================================================================
@@ -206,6 +254,7 @@ pub struct TransientResources {
 #[derive(SystemParam)]
 pub struct GeometryRenderer<'w, 's> {
     pub global_geo: Res<'w, GlobalGeometryResources>,
+    pub cache: ResMut<'w, MaterialCache>,
     pub meshes: ResMut<'w, Assets<Mesh>>,
     pub materials_2d: ResMut<'w, Assets<ColorMaterial>>,
     pub materials_3d: ResMut<'w, Assets<StandardMaterial>>,
@@ -248,7 +297,7 @@ pub fn process_geometry(
     match command {
         // --- UNLIT 2D ---
         GeometryCommand::Circle { position, radius, color, layer } => {
-            let material = resources.materials_2d.add(ColorMaterial::from(color));
+            let material = resources.cache.get_2d(color, &mut resources.materials_2d);
             cmd_entity.insert((
                 Mesh2d(resources.global_geo.circle.clone()),
                 MeshMaterial2d(material.clone()),
@@ -259,7 +308,7 @@ pub fn process_geometry(
             ));
         }
         GeometryCommand::Rect { position, size, color, layer } => {
-            let material = resources.materials_2d.add(ColorMaterial::from(color));
+            let material = resources.cache.get_2d(color, &mut resources.materials_2d);
             cmd_entity.insert((
                 Mesh2d(resources.global_geo.rect.clone()),
                 MeshMaterial2d(material.clone()),
@@ -273,7 +322,7 @@ pub fn process_geometry(
             let center = (start + end) / 2.0;
             let length = start.distance(end);
             let angle = (end.y - start.y).atan2(end.x - start.x);
-            let material = resources.materials_2d.add(ColorMaterial::from(color));
+            let material = resources.cache.get_2d(color, &mut resources.materials_2d);
 
             cmd_entity.insert((
                 Mesh2d(resources.global_geo.rect.clone()),
@@ -290,7 +339,7 @@ pub fn process_geometry(
             let inner = radius - thickness / 2.0;
             let outer = radius + thickness / 2.0;
             let mesh_handle = resources.meshes.add(Annulus::new(inner, outer));
-            let mat_handle = resources.materials_2d.add(ColorMaterial::from(color));
+            let mat_handle = resources.cache.get_2d(color, &mut resources.materials_2d);
 
             cmd_entity.insert((
                 Mesh2d(mesh_handle.clone()),
@@ -304,7 +353,7 @@ pub fn process_geometry(
 
         // --- LIT 3D ---
         GeometryCommand::Cube { position, rotation, size, color, layer } => {
-            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            let material = resources.cache.get_3d(color, &mut resources.materials_3d);
             cmd_entity.insert((
                 Mesh3d(resources.global_geo.cuboid.clone()),
                 MeshMaterial3d(material.clone()),
@@ -315,7 +364,7 @@ pub fn process_geometry(
             ));
         }
         GeometryCommand::Cuboid { position, rotation, size, color, layer } => {
-            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            let material = resources.cache.get_3d(color, &mut resources.materials_3d);
             cmd_entity.insert((
                 Mesh3d(resources.global_geo.cuboid.clone()),
                 MeshMaterial3d(material.clone()),
@@ -326,7 +375,7 @@ pub fn process_geometry(
             ));
         }
         GeometryCommand::Sphere { position, radius, color, layer } => {
-            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            let material = resources.cache.get_3d(color, &mut resources.materials_3d);
             cmd_entity.insert((
                 Mesh3d(resources.global_geo.sphere.clone()),
                 MeshMaterial3d(material.clone()),
@@ -337,7 +386,7 @@ pub fn process_geometry(
             ));
         }
         GeometryCommand::Cylinder { position, rotation, radius, height, color, layer } => {
-            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            let material = resources.cache.get_3d(color, &mut resources.materials_3d);
             cmd_entity.insert((
                 Mesh3d(resources.global_geo.cylinder.clone()),
                 MeshMaterial3d(material.clone()),
@@ -348,7 +397,7 @@ pub fn process_geometry(
             ));
         }
         GeometryCommand::Cone { position, rotation, radius, height, color, layer } => {
-            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            let material = resources.cache.get_3d(color, &mut resources.materials_3d);
             cmd_entity.insert((
                 Mesh3d(resources.global_geo.cone.clone()),
                 MeshMaterial3d(material.clone()),
@@ -359,7 +408,7 @@ pub fn process_geometry(
             ));
         }
         GeometryCommand::Torus { position, rotation, radius, tube_radius, color, layer } => {
-            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            let material = resources.cache.get_3d(color, &mut resources.materials_3d);
             cmd_entity.insert((
                 Mesh3d(resources.global_geo.torus.clone()),
                 MeshMaterial3d(material.clone()),
@@ -370,7 +419,7 @@ pub fn process_geometry(
             ));
         }
         GeometryCommand::Plane { position, rotation, size, color, layer } => {
-            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            let material = resources.cache.get_3d(color, &mut resources.materials_3d);
             cmd_entity.insert((
                 Mesh3d(resources.global_geo.plane.clone()),
                 MeshMaterial3d(material.clone()),
@@ -381,7 +430,7 @@ pub fn process_geometry(
             ));
         }
         GeometryCommand::Quad { position, rotation, size, color, layer } => {
-            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            let material = resources.cache.get_3d(color, &mut resources.materials_3d);
             cmd_entity.insert((
                 Mesh3d(resources.global_geo.plane.clone()),
                 MeshMaterial3d(material.clone()),
