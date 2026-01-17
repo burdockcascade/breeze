@@ -50,6 +50,21 @@ pub enum ShapeCommand {
     Cone { position: Vec3, rotation: Quat, radius: f32, height: f32, color: Color, layer: usize },
     Taurus { position: Vec3, rotation: Quat, radius: f32, tube_radius: f32, color: Color, layer: usize },
     Plane { position: Vec3, rotation: Quat, size: f32, color: Color, layer: usize },
+
+    // Light Commands
+    PointLight { position: Vec3, color: Color, intensity: f32, radius: f32, layer: usize },
+    DirectionalLight { direction: Vec3, color: Color, illuminance: f32, layer: usize },
+}
+
+#[derive(Component)]
+pub struct PooledLight {
+    pub light_type: LightType,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum LightType {
+    Point,
+    Directional,
 }
 
 /// Resource to queue up shape commands for the current frame
@@ -128,6 +143,25 @@ impl<'a> ShapeContext<'a> {
     pub fn plane(&mut self, position: Vec3, rotation: Quat, size: f32, color: Color) {
         self.queue.0.push(ShapeCommand::Plane { position, rotation, size, color, layer: self.layer_id });
     }
+
+    pub fn point_light(&mut self, position: Vec3, color: Color, intensity: f32, radius: f32) {
+        self.queue.0.push(ShapeCommand::PointLight {
+            position,
+            color,
+            intensity,
+            radius,
+            layer: self.layer_id
+        });
+    }
+
+    pub fn directional_light(&mut self, direction: Vec3, color: Color, illuminance: f32) {
+        self.queue.0.push(ShapeCommand::DirectionalLight {
+            direction,
+            color,
+            illuminance,
+            layer: self.layer_id
+        });
+    }
 }
 
 #[derive(SystemParam)]
@@ -140,6 +174,19 @@ pub struct ShapeRenderer<'w, 's> {
     // Include this if you added the 3D support
     pub materials_3d: ResMut<'w, Assets<StandardMaterial>>,
     pub q_transient: Query<'w, 's, (Entity, &'static TransientResources)>,
+
+    // --- FIXED QUERIES ---
+    // We add "Without<DirectionalLight>" to the PointLight query
+    pub q_point_lights: Query<'w, 's,
+        (Entity, &'static mut PointLight, &'static mut Transform, &'static mut Visibility, &'static PooledLight),
+        Without<DirectionalLight>
+    >,
+
+    // We add "Without<PointLight>" to the DirectionalLight query
+    pub q_dir_lights: Query<'w, 's,
+        (Entity, &'static mut DirectionalLight, &'static mut Transform, &'static mut Visibility, &'static PooledLight),
+        Without<PointLight>
+    >,
 }
 
 pub fn render_shapes(mut renderer: ShapeRenderer) {
@@ -157,6 +204,16 @@ pub fn render_shapes(mut renderer: ShapeRenderer) {
         }
         renderer.commands.entity(entity).despawn();
     }
+
+    let mut available_point_lights: Vec<Entity> = renderer.q_point_lights.iter()
+        .filter(|(.., pool)| pool.light_type == LightType::Point)
+        .map(|(e, ..)| e)
+        .collect();
+
+    let mut available_dir_lights: Vec<Entity> = renderer.q_dir_lights.iter()
+        .filter(|(.., pool)| pool.light_type == LightType::Directional)
+        .map(|(e, ..)| e)
+        .collect();
 
     // Process the queue
     for command in renderer.queue.0.drain(..) {
@@ -284,6 +341,72 @@ pub fn render_shapes(mut renderer: ShapeRenderer) {
                     TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
                 ));
             }
+            ShapeCommand::PointLight { position, color, intensity, radius, layer } => {
+                if let Some(entity) = available_point_lights.pop() {
+                    // REUSE: Update existing entity
+                    let (_, mut light, mut transform, mut visibility, _) = renderer.q_point_lights.get_mut(entity).unwrap();
+                    light.color = color;
+                    light.intensity = intensity;
+                    light.range = radius;
+                    light.shadows_enabled = true; // CAUTION: Shadows are still expensive!
+                    *transform = Transform::from_translation(position);
+                    *visibility = Visibility::Visible;
+                } else {
+                    // CREATE: Spawn new if pool is empty
+                    renderer.commands.spawn((
+                        PointLight {
+                            color,
+                            intensity,
+                            range: radius,
+                            shadows_enabled: true,
+                            ..default()
+                        },
+                        Transform::from_translation(position),
+                        RenderLayers::layer(layer),
+                        PooledLight { light_type: LightType::Point }, // Mark for pooling
+                        // Note: Do NOT add TransientResources here
+                    ));
+                }
+            }
+            ShapeCommand::DirectionalLight { direction, color, illuminance, layer } => {
+                let rotation = Quat::from_rotation_arc(Vec3::NEG_Z, direction.normalize_or_zero());
+
+                if let Some(entity) = available_dir_lights.pop() {
+                    // REUSE
+                    let (_, mut light, mut transform, mut visibility, _) = renderer.q_dir_lights.get_mut(entity).unwrap();
+                    light.color = color;
+                    light.illuminance = illuminance;
+                    light.shadows_enabled = true;
+                    *transform = Transform::from_rotation(rotation);
+                    *visibility = Visibility::Visible;
+                } else {
+                    // CREATE
+                    renderer.commands.spawn((
+                        DirectionalLight {
+                            color,
+                            illuminance,
+                            shadows_enabled: true,
+                            ..default()
+                        },
+                        Transform::from_rotation(rotation),
+                        RenderLayers::layer(layer),
+                        PooledLight { light_type: LightType::Directional },
+                    ));
+                }
+            }
+        }
+
+    }
+
+    for entity in available_point_lights {
+        if let Ok((_, _, _, mut vis, _)) = renderer.q_point_lights.get_mut(entity) {
+            *vis = Visibility::Hidden;
+        }
+    }
+
+    for entity in available_dir_lights {
+        if let Ok((_, _, _, mut vis, _)) = renderer.q_dir_lights.get_mut(entity) {
+            *vis = Visibility::Hidden;
         }
     }
 }

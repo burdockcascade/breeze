@@ -21,10 +21,18 @@ impl Game for ShapeGallery {
     fn draw(&mut self, ctx: &mut DrawContext) {
 
         // 2. Clear background
-        ctx.clear_background(Color::from(WHITE));
+        ctx.clear_background(Color::from(LIGHT_GRAY));
 
         ctx.with_layer(0, |world| {
-            // 3. Setup Camera
+
+            // Setup lighting
+            world.shapes.directional_light(
+                Vec3::new(-0.5, -1.0, -0.5),
+                Color::from(WHITE),
+                10_000.0
+            );
+
+
             // We position the camera back (z=8) and up (y=4), looking at the current x position
             world.set_camera(CameraMode::Camera3d {
                 position: Vec3::new(self.camera_x, 4.0, 8.0),
