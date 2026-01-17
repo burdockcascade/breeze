@@ -100,7 +100,7 @@ impl Game for ShapeGallery {
             // 6. Draw Text Instructions (in world space or screen space)
             // Note: Currently text is 2D screen space.
             // It will stick to the screen even as 3D moves, which is perfect for UI.
-            world.text.draw("Use Left/Right Arrow Keys to View Shapes", -200.0, 250.0);
+            world.text.draw("Use Left/Right Arrow Keys to View Shapes", vec2(-200.0, 250.0));
         });
     }
 }

@@ -3,15 +3,16 @@ use bevy::ecs::system::SystemParam;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+
 use crate::core::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
 use crate::camera::{manage_cameras, CameraQueue};
 use crate::context::{AppConfig, Context, DrawContext};
 use crate::core::input::InputContext;
-use crate::graphics::sprite::{render_sprites, SpriteQueue};
-use crate::graphics::text::{render_text, TextQueue};
 use crate::core::window::WindowContext;
-use crate::graphics::geometry::{render_geometry, Geometry2d, GeometryQueue, GlobalGeometryResources};
-use crate::graphics::lights::{render_lights, LightQueue};
+
+use crate::graphics::commands::GraphicsQueue;
+use crate::graphics::renderer::render_graphics;
+use crate::graphics::geometry::GlobalGeometryResources;
 
 pub trait Game: Send + Sync + 'static {
     fn init(&mut self, _ctx: &mut Context) {}
@@ -24,30 +25,21 @@ pub struct InternalState { initialized: bool }
 
 #[derive(SystemParam)]
 pub struct EngineContext<'w, 's> {
-
-    // Core
     pub time: Res<'w, Time>,
     pub asset_server: Res<'w, AssetServer>,
 
     // Queues
     pub camera_queue: ResMut<'w, CameraQueue>,
-    pub text_queue: ResMut<'w, TextQueue>,
-    pub sprite_queue: ResMut<'w, SpriteQueue>,
-    pub light_queue: ResMut<'w, LightQueue>,
     pub audio_queue: ResMut<'w, AudioQueue>,
-    pub geometry_queue: ResMut<'w, GeometryQueue>,
+    pub graphics_queue: ResMut<'w, GraphicsQueue>,
 
-    // Input
     pub keys: Res<'w, ButtonInput<KeyCode>>,
     pub mouse_buttons: Res<'w, ButtonInput<MouseButton>>,
 
-    // Window / Camera (for mouse calculation)
     pub q_window: Query<'w, 's, &'static mut Window, With<PrimaryWindow>>,
     pub q_camera: Query<'w, 's, (&'static Camera, &'static GlobalTransform, Option<&'static RenderLayers>), With<Camera>>,
 
-    // Clear Color
     pub clear_color: ResMut<'w, ClearColor>,
-
 }
 
 pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineContext, mut state: Local<InternalState>) {
@@ -57,10 +49,9 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
     if let Ok(ref mut window) = primary_window_result {
 
         let mut cursor_world_pos = Vec2::ZERO;
-
         let target_layer_id = 0;
 
-        // Find the camera that renders this specific layer
+        // (Input handling code remains same...)
         let input_camera = engine.q_camera.iter().find(|(_, _, layers)| {
             match layers {
                 Some(l) => l.intersects(&RenderLayers::layer(target_layer_id)),
@@ -68,7 +59,6 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
             }
         });
 
-        // Calculate cursor world position
         if let Some((camera, camera_transform, _)) = input_camera {
             if let Some(screen_pos) = window.cursor_position() {
                 if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
@@ -77,7 +67,6 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
             }
         }
 
-        // Call Update
         {
             let mut ctx = Context {
                 time: &engine.time,
@@ -104,21 +93,16 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
             game.update(&mut ctx);
         }
 
-        // Call Draw
         {
             let mut draw_ctx = DrawContext {
                 time: &engine.time,
-                geometry_queue: &mut engine.geometry_queue,
-                sprite_queue: &mut engine.sprite_queue,
-                light_queue: &mut engine.light_queue,
-                text_queue: &mut engine.text_queue,
+                graphics_queue: &mut engine.graphics_queue,
                 asset_server: &engine.asset_server,
                 clear_color: &mut engine.clear_color,
                 camera_queue: &mut engine.camera_queue,
             };
             game.draw(&mut draw_ctx);
         }
-
     }
 }
 
@@ -136,10 +120,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
             .disable::<LogPlugin>()
         )
         .init_resource::<GlobalGeometryResources>()
-        .insert_resource(GeometryQueue::default())
-        .insert_resource(LightQueue::default())
-        .insert_resource(TextQueue::default())
-        .insert_resource(SpriteQueue::default())
+        .insert_resource(GraphicsQueue::default()) // The One Queue
         .insert_resource(AudioQueue::default())
         .insert_resource(ActiveLoops::default())
         .insert_resource(ClearColor(Color::BLACK))
@@ -147,10 +128,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
         .insert_non_send_resource(game)
         .add_systems(Update, (
             internal_game_loop::<G>,
-            render_text,
-            render_sprites,
-            render_lights,
-            render_geometry,
+            render_graphics,
             play_audio,
             manage_cameras
         ).chain())

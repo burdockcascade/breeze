@@ -39,9 +39,7 @@ impl Game for MyGame {
         // UI layer
         ctx.with_layer(1, |ui| {
             ui.set_camera(CameraMode::default());
-            ui.text.draw(
-                "Use Arrow Keys to Move Circle. Left Click to turn Green, Right Click to turn Red.",
-                -0.0, 250.0,
+            ui.text.draw("Use Arrow Keys to Move Circle. Left Click to turn Green, Right Click to turn Red.", vec2(-0.0, 250.0),
             );
         });
     }

@@ -34,9 +34,9 @@ impl Game for MyGame {
         ctx.with_layer(0, |ui| {
             ui.set_camera(self.camera);
             if self.music_playing {
-                ui.text.draw("Music Playing - Press 'P' to Pause", 0.0, 0.0);
+                ui.text.draw("Music Playing - Press 'P' to Pause", vec2(0.0, 0.0));
             } else {
-                ui.text.draw("Music Paused - Press 'P' to Resume", 0.0, 0.0);
+                ui.text.draw("Music Paused - Press 'P' to Resume", vec2(0.0, 0.0));
             }
         });
     }

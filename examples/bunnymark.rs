@@ -131,7 +131,7 @@ impl Game for BunnyMarkGame {
                                self.bunnies.len(),
                                1.0 / ctx.time.delta_secs()
             );
-            layer.text.draw_ext(&info, -0.0, 100.0, 20.0, Color::BLACK);
+            layer.text.draw_ext(&info, vec2(-0.0, 100.0), 20.0, Color::BLACK);
         });
     }
 }

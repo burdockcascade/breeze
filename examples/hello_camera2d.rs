@@ -41,10 +41,7 @@ impl Game for MyGame {
 
         ctx.with_layer(1, |ui| {
             ui.set_camera(CameraMode::default());
-            ui.text.draw(
-                "Use Arrow Keys to Move Camera, Z/X to Zoom In/Out",
-                0.0, 250.0,
-            );
+            ui.text.draw("Use Arrow Keys to Move Camera, Z/X to Zoom In/Out", vec2(0.0, 250.0));
         });
 
         ctx.with_layer(0, |world2d| {

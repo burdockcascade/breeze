@@ -17,7 +17,7 @@ impl Game for MyGame {
 
         ctx.with_layer(1, |ui| {
             ui.set_camera(CameraMode::default());
-            ui.text.draw("Welcome to Breeze!", -100.0, 150.0);
+            ui.text.draw("Welcome to Breeze!", vec2(-100.0, 150.0));
         });
 
         ctx.with_layer(0, |world| {

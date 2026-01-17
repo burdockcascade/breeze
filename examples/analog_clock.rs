@@ -78,7 +78,7 @@ impl Game for AnalogClock {
 
             // Draw digital time text for reference
             let time_str = format!("{:02}:{:02}:{:02} UTC", raw_hours, raw_minutes, raw_seconds);
-            world.text.draw_ext(&time_str, 0.0, -250.0, 30.0, Color::from(WHITE));
+            world.text.draw_ext(&time_str, vec2(0.0, -250.0), 30.0, Color::from(WHITE));
         });
     }
 }

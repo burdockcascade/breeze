@@ -19,7 +19,7 @@ impl Game for MyGame {
 
         ctx.with_layer(0, |ui| {
             ui.set_camera(CameraMode::default());
-            ui.text.draw("Press Space to Play Sound Effect", -150.0, 0.0);
+            ui.text.draw("Press Space to Play Sound Effect", vec2(-150.0, 0.0));
         });
     }
 }

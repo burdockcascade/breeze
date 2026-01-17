@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use bevy::prelude::*;
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::system::SystemParam;
-
+use crate::graphics::commands::{GraphicsCommand, GraphicsQueue};
 // =================================================================================
 //  BACKEND: RESOURCES & COMMANDS
 // =================================================================================
@@ -74,69 +74,120 @@ pub enum GeometryCommand {
 
 pub struct Geometry2d<'a> {
     // Holds a reference to a Cell containing the mutable queue
-    pub queue: &'a RefCell<&'a mut GeometryQueue>,
+    pub queue: &'a RefCell<&'a mut GraphicsQueue>,
     pub layer_id: usize,
 }
 
 impl<'a> Geometry2d<'a> {
     pub fn circle(&self, position: Vec2, radius: f32, color: Color) {
-        // .borrow_mut() allows us to push to the queue even though 'self' is shared
-        self.queue.borrow_mut().0.push(GeometryCommand::Circle { position, radius, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Circle { position, radius, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn rect(&self, position: Vec2, size: Vec2, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Rect { position, size, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Rect { position, size, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn line(&self, start: Vec2, end: Vec2, thickness: f32, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Line { start, end, thickness, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Line { start, end, thickness, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn ring(&self, position: Vec2, radius: f32, thickness: f32, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Ring { position, radius, thickness, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Ring { position, radius, thickness, color, layer: self.layer_id }
+            )
+        );
     }
 }
 
 pub struct Geometry3d<'a> {
-    pub queue: &'a RefCell<&'a mut GeometryQueue>,
+    pub queue: &'a RefCell<&'a mut GraphicsQueue>,
     pub layer_id: usize,
 }
 
 impl<'a> Geometry3d<'a> {
     pub fn cube(&self, position: Vec3, rotation: Quat, size: f32, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Cube { position, rotation, size, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Cube { position, rotation, size, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn cuboid(&self, position: Vec3, rotation: Quat, size: Vec3, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Cuboid { position, rotation, size, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Cuboid { position, rotation, size, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn sphere(&self, position: Vec3, radius: f32, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Sphere { position, radius, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Sphere { position, radius, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn cylinder(&self, position: Vec3, rotation: Quat, radius: f32, height: f32, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Cylinder { position, rotation, radius, height, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Cylinder { position, rotation, radius, height, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn cone(&self, position: Vec3, rotation: Quat, radius: f32, height: f32, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Cone { position, rotation, radius, height, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Cone { position, rotation, radius, height, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn torus(&self, position: Vec3, rotation: Quat, radius: f32, tube_radius: f32, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Torus { position, rotation, radius, tube_radius, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Torus { position, rotation, radius, tube_radius, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn plane(&self, position: Vec3, rotation: Quat, size: f32, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Plane { position, rotation, size, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Plane { position, rotation, size, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn quad(&self, position: Vec3, rotation: Quat, size: Vec2, color: Color) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Quad { position, rotation, size, color, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Quad { position, rotation, size, color, layer: self.layer_id }
+            )
+        );
     }
 
     pub fn model(&self, position: Vec3, rotation: Quat, scale: Vec3, scene: Handle<Scene>) {
-        self.queue.borrow_mut().0.push(GeometryCommand::Model { position, rotation, scale, scene, layer: self.layer_id });
+        self.queue.borrow_mut().0.push(
+            GraphicsCommand::Geometry(
+                GeometryCommand::Model { position, rotation, scale, scene, layer: self.layer_id }
+            )
+        );
     }
 }
 
@@ -154,8 +205,6 @@ pub struct TransientResources {
 
 #[derive(SystemParam)]
 pub struct GeometryRenderer<'w, 's> {
-    pub commands: Commands<'w, 's>,
-    pub queue: ResMut<'w, GeometryQueue>,
     pub global_geo: Res<'w, GlobalGeometryResources>,
     pub meshes: ResMut<'w, Assets<Mesh>>,
     pub materials_2d: ResMut<'w, Assets<ColorMaterial>>,
@@ -163,168 +212,153 @@ pub struct GeometryRenderer<'w, 's> {
     pub q_transient: Query<'w, 's, (Entity, &'static TransientResources)>,
 }
 
-pub fn render_geometry(mut renderer: GeometryRenderer) {
-    // 1. Cleanup previous frame
-    for (entity, resources) in renderer.q_transient.iter() {
-        if let Some(handle) = &resources.mesh {
-            renderer.meshes.remove(handle);
+/// Helper function to spawn a single geometry command.
+/// This is used by the UnifiedRenderer to process commands from the global queue.
+pub fn spawn_geometry(commands: &mut Commands, resources: &mut GeometryRenderer, command: GeometryCommand) {
+    match command {
+        // --- UNLIT 2D ---
+        GeometryCommand::Circle { position, radius, color, layer } => {
+            let material = resources.materials_2d.add(ColorMaterial::from(color));
+            commands.spawn((
+                Mesh2d(resources.global_geo.circle.clone()),
+                MeshMaterial2d(material.clone()),
+                Transform::from_translation(position.extend(0.0)).with_scale(Vec3::splat(radius)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
+            ));
         }
-        if let Some(handle) = &resources.material_2d {
-            renderer.materials_2d.remove(handle);
+        GeometryCommand::Rect { position, size, color, layer } => {
+            let material = resources.materials_2d.add(ColorMaterial::from(color));
+            commands.spawn((
+                Mesh2d(resources.global_geo.rect.clone()),
+                MeshMaterial2d(material.clone()),
+                Transform::from_translation(position.extend(0.0)).with_scale(size.extend(1.0)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
+            ));
         }
-        if let Some(handle) = &resources.material_3d {
-            renderer.materials_3d.remove(handle);
+        GeometryCommand::Line { start, end, thickness, color, layer } => {
+            let center = (start + end) / 2.0;
+            let length = start.distance(end);
+            let angle = (end.y - start.y).atan2(end.x - start.x);
+
+            let material = resources.materials_2d.add(ColorMaterial::from(color));
+            commands.spawn((
+                Mesh2d(resources.global_geo.rect.clone()),
+                MeshMaterial2d(material.clone()),
+                Transform::from_translation(center.extend(0.0))
+                    .with_rotation(Quat::from_rotation_z(angle))
+                    .with_scale(Vec3::new(length, thickness, 1.0)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
+            ));
         }
-        // recursive is essential for cleaning up Scene/Model hierarchies
-        renderer.commands.entity(entity).despawn();
-    }
+        GeometryCommand::Ring { position, radius, thickness, color, layer } => {
+            let inner = radius - thickness / 2.0;
+            let outer = radius + thickness / 2.0;
+            // Note: Meshes are added to resources.meshes (Assets<Mesh>)
+            let mesh_handle = resources.meshes.add(Annulus::new(inner, outer));
+            let mat_handle = resources.materials_2d.add(ColorMaterial::from(color));
 
-    // 2. Process Queue
-    for command in renderer.queue.0.drain(..) {
-        match command {
-            // --- UNLIT 2D ---
-            GeometryCommand::Circle { position, radius, color, layer } => {
-                let material = renderer.materials_2d.add(ColorMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh2d(renderer.global_geo.circle.clone()),
-                    MeshMaterial2d(material.clone()),
-                    Transform::from_translation(position.extend(0.0)).with_scale(Vec3::splat(radius)),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
-                ));
-            }
-            GeometryCommand::Rect { position, size, color, layer } => {
-                let material = renderer.materials_2d.add(ColorMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh2d(renderer.global_geo.rect.clone()),
-                    MeshMaterial2d(material.clone()),
-                    Transform::from_translation(position.extend(0.0)).with_scale(size.extend(1.0)),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
-                ));
-            }
-            GeometryCommand::Line { start, end, thickness, color, layer } => {
-                let center = (start + end) / 2.0;
-                let length = start.distance(end);
-                let angle = (end.y - start.y).atan2(end.x - start.x);
+            commands.spawn((
+                Mesh2d(mesh_handle.clone()),
+                MeshMaterial2d(mat_handle.clone()),
+                Transform::from_translation(position.extend(0.0)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: Some(mesh_handle), material_2d: Some(mat_handle), material_3d: None },
+            ));
+        }
 
-                let material = renderer.materials_2d.add(ColorMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh2d(renderer.global_geo.rect.clone()),
-                    MeshMaterial2d(material.clone()),
-                    Transform::from_translation(center.extend(0.0))
-                        .with_rotation(Quat::from_rotation_z(angle))
-                        .with_scale(Vec3::new(length, thickness, 1.0)),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: Some(material), material_3d: None },
-                ));
-            }
-            GeometryCommand::Ring { position, radius, thickness, color, layer } => {
-                let inner = radius - thickness / 2.0;
-                let outer = radius + thickness / 2.0;
-                let mesh_handle = renderer.meshes.add(Annulus::new(inner, outer));
-                let mat_handle = renderer.materials_2d.add(ColorMaterial::from(color));
-
-                renderer.commands.spawn((
-                    Mesh2d(mesh_handle.clone()),
-                    MeshMaterial2d(mat_handle.clone()),
-                    Transform::from_translation(position.extend(0.0)),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: Some(mesh_handle), material_2d: Some(mat_handle), material_3d: None },
-                ));
-            }
-
-            // --- LIT 3D ---
-            GeometryCommand::Cube { position, rotation, size, color, layer } => {
-                let material = renderer.materials_3d.add(StandardMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh3d(renderer.global_geo.cuboid.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::splat(size)),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
-                ));
-            }
-            GeometryCommand::Cuboid { position, rotation, size, color, layer } => {
-                let material = renderer.materials_3d.add(StandardMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh3d(renderer.global_geo.cuboid.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_translation(position).with_rotation(rotation).with_scale(size),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
-                ));
-            }
-            GeometryCommand::Sphere { position, radius, color, layer } => {
-                let material = renderer.materials_3d.add(StandardMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh3d(renderer.global_geo.sphere.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_translation(position).with_scale(Vec3::splat(radius)),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
-                ));
-            }
-            GeometryCommand::Cylinder { position, rotation, radius, height, color, layer } => {
-                let material = renderer.materials_3d.add(StandardMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh3d(renderer.global_geo.cylinder.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::new(radius, height, radius)),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
-                ));
-            }
-            GeometryCommand::Cone { position, rotation, radius, height, color, layer } => {
-                let material = renderer.materials_3d.add(StandardMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh3d(renderer.global_geo.cone.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_translation(position).with_rotation(rotation),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
-                ));
-            }
-            GeometryCommand::Torus { position, rotation, radius, tube_radius, color, layer } => {
-                let material = renderer.materials_3d.add(StandardMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh3d(renderer.global_geo.torus.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_translation(position).with_rotation(rotation),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
-                ));
-            }
-            GeometryCommand::Plane { position, rotation, size, color, layer } => {
-                let material = renderer.materials_3d.add(StandardMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh3d(renderer.global_geo.plane.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::new(size, 1.0, size)),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
-                ));
-            }
-            GeometryCommand::Quad { position, rotation, size, color, layer } => {
-                let material = renderer.materials_3d.add(StandardMaterial::from(color));
-                renderer.commands.spawn((
-                    Mesh3d(renderer.global_geo.plane.clone()), // Reusing plane mesh
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_translation(position)
-                        .with_rotation(rotation)
-                        .with_scale(Vec3::new(size.x, 1.0, size.y)), // Map Vec2 X/Y to Plane X/Z
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
-                ));
-            }
-            GeometryCommand::Model { position, rotation, scale, scene, layer } => {
-                renderer.commands.spawn((
-                    SceneRoot(scene),
-                    Transform::from_translation(position).with_rotation(rotation).with_scale(scale),
-                    RenderLayers::layer(layer),
-                    TransientResources { mesh: None, material_2d: None, material_3d: None },
-                ));
-            }
+        // --- LIT 3D & 2D ---
+        GeometryCommand::Cube { position, rotation, size, color, layer } => {
+            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            commands.spawn((
+                Mesh3d(resources.global_geo.cuboid.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::splat(size)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
+            ));
+        }
+        GeometryCommand::Cuboid { position, rotation, size, color, layer } => {
+            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            commands.spawn((
+                Mesh3d(resources.global_geo.cuboid.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(position).with_rotation(rotation).with_scale(size),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
+            ));
+        }
+        GeometryCommand::Sphere { position, radius, color, layer } => {
+            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            commands.spawn((
+                Mesh3d(resources.global_geo.sphere.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(position).with_scale(Vec3::splat(radius)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
+            ));
+        }
+        GeometryCommand::Cylinder { position, rotation, radius, height, color, layer } => {
+            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            commands.spawn((
+                Mesh3d(resources.global_geo.cylinder.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::new(radius, height, radius)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
+            ));
+        }
+        GeometryCommand::Cone { position, rotation, radius, height, color, layer } => {
+            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            commands.spawn((
+                Mesh3d(resources.global_geo.cone.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(position).with_rotation(rotation),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
+            ));
+        }
+        GeometryCommand::Torus { position, rotation, radius, tube_radius, color, layer } => {
+            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            commands.spawn((
+                Mesh3d(resources.global_geo.torus.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(position).with_rotation(rotation),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
+            ));
+        }
+        GeometryCommand::Plane { position, rotation, size, color, layer } => {
+            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            commands.spawn((
+                Mesh3d(resources.global_geo.plane.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(position).with_rotation(rotation).with_scale(Vec3::new(size, 1.0, size)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
+            ));
+        }
+        GeometryCommand::Quad { position, rotation, size, color, layer } => {
+            let material = resources.materials_3d.add(StandardMaterial::from(color));
+            commands.spawn((
+                Mesh3d(resources.global_geo.plane.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::from_translation(position)
+                    .with_rotation(rotation)
+                    .with_scale(Vec3::new(size.x, 1.0, size.y)),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: Some(material) },
+            ));
+        }
+        GeometryCommand::Model { position, rotation, scale, scene, layer } => {
+            commands.spawn((
+                SceneRoot(scene),
+                Transform::from_translation(position).with_rotation(rotation).with_scale(scale),
+                RenderLayers::layer(layer),
+                TransientResources { mesh: None, material_2d: None, material_3d: None },
+            ));
         }
     }
 }

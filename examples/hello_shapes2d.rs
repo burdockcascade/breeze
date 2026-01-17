@@ -14,7 +14,7 @@ impl Game for MyGame {
             world.set_camera(CameraMode::default());
 
             // Draw some text at the top
-            world.text.draw("Hello, Shapes!", -150.0, 200.0);
+            world.text.draw("Hello, Shapes!", vec2(-150.0, 200.0));
 
             // Calculate positions and sizes based on elapsed time
             let x_pos = ctx.time.elapsed_secs().sin() * 200.0;

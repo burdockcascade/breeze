@@ -20,9 +20,9 @@ impl Game for MyGame {
         ctx.with_layer(0, |ui| {
             ui.set_camera(CameraMode::default());
             if self.is_fullscreen {
-                ui.text.draw("Fullscreen mode - Press Alt+Enter to toggle", 0.0, 0.0);
+                ui.text.draw("Fullscreen mode - Press Alt+Enter to toggle", Vec2::ZERO);
             } else {
-                ui.text.draw("Windowed mode - Press Alt+Enter to toggle", 0.0, 0.0);
+                ui.text.draw("Windowed mode - Press Alt+Enter to toggle", Vec2::ZERO);
             }
         });
     }
