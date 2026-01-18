@@ -13,10 +13,12 @@ pub struct UnifiedRenderer<'w, 's> {
     pub queue: ResMut<'w, GraphicsQueue>,
 
     // Sub-renderers
-    pub geo_resources: GeometryRenderer<'w, 's>,
-    pub sprite_resources: SpriteRenderer<'w, 's>,
-    pub text_resources: TextRenderer<'w, 's>,
-    pub light_resources: LightRenderer<'w, 's>,
+    pub renderers: ParamSet<'w, 's, (
+        GeometryRenderer<'w, 's>, // p0
+        SpriteRenderer<'w, 's>,   // p1
+        TextRenderer<'w, 's>,     // p2
+        LightRenderer<'w, 's>     // p3
+    )>
 }
 
 pub fn render_graphics(mut renderer: UnifiedRenderer) {
@@ -24,60 +26,77 @@ pub fn render_graphics(mut renderer: UnifiedRenderer) {
     // 1. PREPARE POOLS OF AVAILABLE ENTITIES
 
     // Geometry Pool
-    let mut pool_geo: Vec<Entity> = renderer.geo_resources.q_transient.iter()
+    let mut pool_geo: Vec<Entity> = renderer.renderers.p0()
+        .q_transient.iter()
         .map(|(e, _)| e)
         .collect();
 
     // Sprite Pool
-    let mut pool_sprites: Vec<Entity> = renderer.sprite_resources.q_sprites.iter()
+    let mut pool_sprites: Vec<Entity> = renderer.renderers.p1()
+        .q_sprites.iter()
         .map(|(e, ..)| e)
         .collect();
 
     // Text Pool
-    let mut pool_text: Vec<Entity> = renderer.text_resources.q_text.iter()
+    let mut pool_text: Vec<Entity> = renderer.renderers.p2()
+        .q_text.iter()
         .collect();
 
     // Light Pool
-    let mut pool_lights: Vec<Entity> = renderer.light_resources.q_lights.iter()
+    let mut pool_lights: Vec<Entity> = renderer.renderers.p3()
+        .q_lights.iter()
         .collect();
 
     // 2. PROCESS COMMANDS
-    for command in renderer.queue.0.drain(..) {
+    let commands_vec: Vec<GraphicsCommand> = renderer.queue.0.drain(..).collect();
+
+    for command in commands_vec {
         match command {
             GraphicsCommand::Geometry(cmd) => {
                 let entity = pool_geo.pop();
-                process_geometry(&mut renderer.commands, &mut renderer.geo_resources, entity, cmd);
+                // Access p0 (GeometryRenderer)
+                let mut geo_system_param = renderer.renderers.p0();
+                process_geometry(&mut renderer.commands, &mut geo_system_param, entity, cmd);
             },
             GraphicsCommand::Sprite(cmd) => {
                 let entity = pool_sprites.pop();
-                process_sprite(&mut renderer.commands, &mut renderer.sprite_resources, entity, cmd);
+                // Access p1 (SpriteRenderer)
+                let mut sprite_system_param = renderer.renderers.p1();
+                process_sprite(&mut renderer.commands, &mut sprite_system_param, entity, cmd);
             },
             GraphicsCommand::Text(cmd) => {
                 let entity = pool_text.pop();
+                // Access p2 (TextRenderer)
+                // Note: process_text (from previous code) didn't actually take &mut TextRenderer,
+                // it just took Commands. If you updated it to use Fast Path, you'd pass p2().
+                // Assuming standard implementation:
                 process_text(&mut renderer.commands, entity, cmd);
             },
             GraphicsCommand::Light(cmd) => {
                 let entity = pool_lights.pop();
+                // Access p3 (LightRenderer)
                 process_light(&mut renderer.commands, entity, cmd);
             }
         }
     }
 
-    // 3. HIDE UNUSED ENTITIES (Recycling)
-    // Any entity left in the pools was not used this frame.
-    // We hide them (soft recycle) or despawn them (hard recycle) if too many.
+    // 3. CLEANUP (Recycle)
+    // We must borrow the renderers again to perform cleanup checks if needed,
+    // or just despawn/hide entities.
 
-    // Geometry: MUST clean up assets even if just hiding, or just despawn excess.
-    // For simplicity and to prevent material leaks, we DESPAWN unused geometry
-    // because holding onto unique Material handles in a hidden pool is complex.
-    for entity in pool_geo {
-        // We must call the specialized cleanup to drop assets
-        if let Ok((_, res)) = renderer.geo_resources.q_transient.get(entity) {
-            if let Some(h) = &res.mesh { renderer.geo_resources.meshes.remove(h); }
-            if let Some(h) = &res.material_2d { renderer.geo_resources.materials_2d.remove(h); }
-            if let Some(h) = &res.material_3d { renderer.geo_resources.materials_3d.remove(h); }
+    // Geometry Cleanup: Needs access to GeometryRenderer to remove transient assets
+    // Note: iterating the pool directly doesn't need the query, but dropping assets DOES.
+    {
+        let mut geo = renderer.renderers.p0();
+        for entity in pool_geo {
+            // We must call the specialized cleanup to drop assets
+            if let Ok((_, res)) = geo.q_transient.get(entity) {
+                if let Some(h) = &res.mesh { geo.meshes.remove(h); }
+                if let Some(h) = &res.material_2d { geo.materials_2d.remove(h); }
+                if let Some(h) = &res.material_3d { geo.materials_3d.remove(h); }
+            }
+            renderer.commands.entity(entity).despawn();
         }
-        renderer.commands.entity(entity).despawn();
     }
 
     // Sprites: Safe to Hide
