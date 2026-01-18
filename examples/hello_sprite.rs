@@ -34,7 +34,10 @@ impl Game for MyGame {
 }
 
 fn main() {
-    run(AppConfig::default(), MyGame {
-        breeze_logo: Handle::default() // Start with empty handle
-    });
+    Breeze::default()
+        .title("Hello, Sprite!")
+        .resolution(1280, 720)
+        .run(MyGame {
+            breeze_logo: Handle::default() // Start with empty handle
+        });
 }

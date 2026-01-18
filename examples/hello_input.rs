@@ -46,10 +46,11 @@ impl Game for MyGame {
 }
 
 fn main() {
-    let my_game = MyGame {
-        pos: Vec2::ZERO,
-        color: Color::srgb(1.0, 0.0, 0.0), // Start Red
-    };
-
-    run(AppConfig::default(), my_game);
+    Breeze::default()
+        .title("Hello, Input!")
+        .resolution(800, 600)
+        .run(MyGame {
+            pos: Vec2::ZERO,
+            color: Color::srgb(1.0, 0.0, 0.0), // Start as Red
+        });
 }

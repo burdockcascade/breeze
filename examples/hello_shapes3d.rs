@@ -112,8 +112,11 @@ impl Game for ShapeGallery {
 }
 
 fn main() {
-    run(AppConfig {
-        title: "Breeze - Shape Gallery".into(),
-        ..default()
-    }, ShapeGallery { camera_x: 0.0, offsets: vec![0.0, 1.0, 2.0, 3.0, 4.0] });
+    Breeze::default()
+        .title("Breeze example")
+        .resolution(800, 600)  
+        .run(ShapeGallery {
+            camera_x: 0.0,
+            offsets: vec![0.0, 1.0, 2.0, 3.0, 4.0],
+        });
 }

@@ -3,12 +3,6 @@ use breeze::prelude::*;
 struct MyGame;
 
 impl Game for MyGame {
-    fn init(&mut self, _ctx: &mut Context) {
-    }
-
-    fn update(&mut self, _ctx: &mut Context) {
-    }
-
     fn draw(&mut self, ctx: &mut DrawContext) {
         ctx.clear_background(Color::WHITE);
         ctx.with_layer(0, |ui| {
@@ -19,5 +13,8 @@ impl Game for MyGame {
 }
 
 fn main() {
-    run(AppConfig::default(), MyGame);
+    Breeze::default()
+        .title("Hello, Breeze!")
+        .resolution(800, 600)
+        .run(MyGame);
 }

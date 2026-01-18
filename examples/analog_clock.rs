@@ -92,11 +92,8 @@ fn draw_hand(world: &mut LayerContext, angle: f32, length: f32, thickness: f32, 
 }
 
 fn main() {
-    let config = AppConfig {
-        title: "Breeze Analog Clock".to_string(),
-        width: 600,
-        height: 600,
-    };
-
-    run(config, AnalogClock);
+    Breeze::default()
+        .title("Analog Clock")
+        .resolution(600, 600)
+        .run(AnalogClock);
 }

@@ -38,10 +38,10 @@ impl Game for MyGame {
 }
 
 fn main() {
-    run(AppConfig {
-        title: "Breeze - 3D Avocado".into(),
-        ..default()
-    }, MyGame {
-        my_model: Handle::default(),
-    });
+    Breeze::default()
+        .title("Hello, Model3D!")
+        .resolution(1280, 720)
+        .run(MyGame {
+            my_model: Handle::default(), // Start with empty handle
+        }); 
 }

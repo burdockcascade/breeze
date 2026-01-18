@@ -25,5 +25,8 @@ impl Game for MyGame {
 }
 
 fn main() {
-    run(AppConfig::default(), MyGame::default());
+    Breeze::default()
+        .title("Hello, Audio!")
+        .resolution(800, 600)
+        .run(MyGame::default());
 }

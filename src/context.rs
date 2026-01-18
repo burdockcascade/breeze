@@ -7,29 +7,11 @@ use crate::core::fps::FpsResource;
 use crate::core::input::InputContext;
 use crate::core::window::WindowContext;
 
-// --- NEW UNIFIED IMPORTS ---
 use crate::graphics::commands::GraphicsQueue;
 use crate::graphics::geometry::{Geometry2d, Geometry3d};
 use crate::graphics::lights::LightContext;
 use crate::graphics::sprite::SpriteContext;
 use crate::graphics::text::TextContext;
-// ---------------------------
-
-pub struct AppConfig {
-    pub title: String,
-    pub width: u32,
-    pub height: u32,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            title: "Untitled".to_string(),
-            width: 800,
-            height: 600,
-        }
-    }
-}
 
 pub struct Context<'a> {
     pub time: &'a Time,

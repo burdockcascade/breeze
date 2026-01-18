@@ -63,8 +63,11 @@ impl Game for MyGame {
 }
 
 fn main() {
-    run(AppConfig::default(), MyGame {
-        camera_pos: Vec2::ZERO,
-        camera_scale: 1.0,
-    });
+    Breeze::default()
+        .title("Hello, Camera2D!")
+        .resolution(800, 600)
+        .run(MyGame {
+            camera_pos: Vec2::ZERO,
+            camera_scale: 1.0,
+        });
 }

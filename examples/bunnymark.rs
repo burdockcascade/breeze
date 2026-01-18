@@ -65,6 +65,12 @@ impl Game for BunnyMarkGame {
             println!("Paused: {}", self.paused);
         }
 
+        // Input: R to Reset
+        if ctx.input.key_down(KeyCode::KeyR) {
+            self.bunnies.clear();
+            println!("Reset Bunnies");
+        }
+
         // Update Physics (only if not paused)
         if !self.paused {
             let dt = ctx.time.delta_secs();
@@ -128,7 +134,7 @@ impl Game for BunnyMarkGame {
         ctx.with_layer(1, |layer| {
             layer.set_camera(CameraMode::default());
             layer.draw_fps(vec2(300.0, 250.0), Color::BLACK);
-            let info = format!("Bunnies: {}\n(Space) Add 1000\n(P) Pause",
+            let info = format!("Bunnies: {}\n(Space) Add 1000\n(P) Pause\n(R) Reset",
                                self.bunnies.len()
             );
             layer.text.draw_ext(&info, vec2(-0.0, 100.0), 20.0, Color::BLACK);
@@ -137,9 +143,8 @@ impl Game for BunnyMarkGame {
 }
 
 fn main() {
-    run(AppConfig {
-        title: "Bunnymark".to_string(),
-        width: 800,
-        height: 600,
-    }, BunnyMarkGame::new());
+    Breeze::default()
+        .title("Bunnymark Example")
+        .resolution(800, 600)
+        .run(BunnyMarkGame::new());
 }

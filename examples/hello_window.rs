@@ -1,3 +1,4 @@
+use std::default;
 use breeze::prelude::*;
 
 struct MyGame {
@@ -29,13 +30,10 @@ impl Game for MyGame {
 }
 
 fn main() {
-    // 1. Configure
-    let config = AppConfig {
-        title: "Hello Window".to_string(),
-        width: 800,
-        height: 600,
-    };
-
-    // 2. Run
-    run(config, MyGame { is_fullscreen: false });
+    Breeze::default()
+        .title("Breeze example")
+        .resolution(640, 480)
+        .run(MyGame {
+            is_fullscreen: false,
+        });
 }
