@@ -18,7 +18,8 @@ impl Game for MyGame {
             world.lights.directional(
                 Vec3::new(-0.5, -1.0, -0.5),
                 Color::from(WHITE),
-                10_000.0
+                10_000.0,
+                false
             );
 
             world.set_camera(CameraMode::Camera3d {

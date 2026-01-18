@@ -1,8 +1,9 @@
 use bevy::camera::visibility::RenderLayers;
+use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+use bevy::window::{PresentMode, PrimaryWindow};
 
 use crate::core::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
 use crate::camera::{manage_cameras, CameraQueue};
@@ -118,6 +119,7 @@ pub fn run<G: Game>(config: AppConfig, game: G) {
                 primary_window: Some(Window {
                     title: config.title,
                     resolution: (config.width, config.height).into(),
+                    present_mode: PresentMode::AutoVsync,
                     ..default()
                 }),
                 ..default()

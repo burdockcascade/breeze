@@ -56,25 +56,21 @@ pub fn render_graphics(mut renderer: UnifiedRenderer) {
         match command {
             GraphicsCommand::Geometry(cmd) => {
                 let entity = pool_geo.pop();
-                // Access p0 (GeometryRenderer)
                 let mut geo_system_param = renderer.renderers.p0();
                 process_geometry(&mut renderer.commands, &mut geo_system_param, entity, cmd);
             },
             GraphicsCommand::Sprite(cmd) => {
                 let entity = pool_sprites.pop();
-                // Access p1 (SpriteRenderer)
                 let mut sprite_system_param = renderer.renderers.p1();
                 process_sprite(&mut renderer.commands, &mut sprite_system_param, entity, cmd);
             },
             GraphicsCommand::Text(cmd) => {
                 let entity = pool_text.pop();
-                // Access p2 (TextRenderer)
                 let mut text_system_param = renderer.renderers.p2();
                 process_text(&mut renderer.commands, &mut text_system_param, entity, cmd);
             },
             GraphicsCommand::Light(cmd) => {
                 let entity = pool_lights.pop();
-                // Access p3 (LightRenderer)
                 let mut light_system_param = renderer.renderers.p3();
                 process_light(&mut renderer.commands, &mut light_system_param, entity, cmd);
             }
@@ -82,11 +78,8 @@ pub fn render_graphics(mut renderer: UnifiedRenderer) {
     }
 
     // 3. CLEANUP (Recycle)
-    // We must borrow the renderers again to perform cleanup checks if needed,
-    // or just despawn/hide entities.
 
-    // Geometry Cleanup: Needs access to GeometryRenderer to remove transient assets
-    // Note: iterating the pool directly doesn't need the query, but dropping assets DOES.
+    // Geometry: Must Despawn
     {
         let mut geo = renderer.renderers.p0();
         for entity in pool_geo {

@@ -29,9 +29,9 @@ impl Game for ShapeGallery {
             world.lights.directional(
                 Vec3::new(-0.5, -1.0, -0.5),
                 Color::from(WHITE),
-                10_000.0
+                10_000.0,
+                false
             );
-
 
             // We position the camera back (z=8) and up (y=4), looking at the current x position
             world.set_camera(CameraMode::Camera3d {
