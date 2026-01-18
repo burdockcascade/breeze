@@ -54,24 +54,42 @@ impl<'a> TextContext<'a> {
 #[derive(SystemParam)]
 pub struct TextRenderer<'w, 's> {
     // Query to find text entities from the previous frame for cleanup
-    pub q_text: Query<'w, 's, Entity, With<ImmediateText>>,
+    // We add components here to allow Mutable access (Fast Path)
+    pub q_text: Query<'w, 's, (
+        Entity,
+        &'static mut Text2d,
+        &'static mut TextFont,
+        &'static mut TextColor,
+        &'static mut Transform,
+        &'static mut Visibility,
+        &'static mut RenderLayers
+    ), With<ImmediateText>>,
 }
 
 // --- 5. SPAWN HELPER (Called by UnifiedRenderer) ---
 pub fn process_text(
     commands: &mut Commands,
+    renderer: &mut TextRenderer, // CHANGED: Now takes mutable renderer
     entity_opt: Option<Entity>,
     cmd: TextCommand
 ) {
-    let mut e = if let Some(entity) = entity_opt {
-        commands.entity(entity)
-    } else {
-        commands.spawn((
-            ImmediateText,
-        ))
-    };
+    // 1. FAST PATH: Update existing entity
+    if let Some(entity) = entity_opt {
+        if let Ok((_, mut txt, mut font, mut color, mut xform, mut vis, mut layers)) = renderer.q_text.get_mut(entity) {
+            txt.0 = cmd.text;
+            font.font = cmd.font;
+            font.font_size = cmd.size;
+            color.0 = cmd.color;
+            xform.translation = cmd.position.extend(0.0);
+            *vis = Visibility::Visible;
+            *layers = RenderLayers::layer(cmd.layer);
+            return;
+        }
+    }
 
-    e.insert((
+    // 2. SLOW PATH: Spawn new
+    commands.spawn((
+        ImmediateText,
         Text2d::new(cmd.text),
         TextFont {
             font: cmd.font,

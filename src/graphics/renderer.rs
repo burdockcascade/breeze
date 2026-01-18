@@ -40,11 +40,13 @@ pub fn render_graphics(mut renderer: UnifiedRenderer) {
     // Text Pool
     let mut pool_text: Vec<Entity> = renderer.renderers.p2()
         .q_text.iter()
+        .map(|(e, ..)| e)
         .collect();
 
     // Light Pool
     let mut pool_lights: Vec<Entity> = renderer.renderers.p3()
         .q_lights.iter()
+        .map(|(e, ..)| e)
         .collect();
 
     // 2. PROCESS COMMANDS
@@ -67,15 +69,14 @@ pub fn render_graphics(mut renderer: UnifiedRenderer) {
             GraphicsCommand::Text(cmd) => {
                 let entity = pool_text.pop();
                 // Access p2 (TextRenderer)
-                // Note: process_text (from previous code) didn't actually take &mut TextRenderer,
-                // it just took Commands. If you updated it to use Fast Path, you'd pass p2().
-                // Assuming standard implementation:
-                process_text(&mut renderer.commands, entity, cmd);
+                let mut text_system_param = renderer.renderers.p2();
+                process_text(&mut renderer.commands, &mut text_system_param, entity, cmd);
             },
             GraphicsCommand::Light(cmd) => {
                 let entity = pool_lights.pop();
                 // Access p3 (LightRenderer)
-                process_light(&mut renderer.commands, entity, cmd);
+                let mut light_system_param = renderer.renderers.p3();
+                process_light(&mut renderer.commands, &mut light_system_param, entity, cmd);
             }
         }
     }

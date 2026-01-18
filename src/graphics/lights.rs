@@ -56,42 +56,86 @@ impl<'a> LightContext<'a> {
     }
 }
 
-// --- 4. RENDERER RESOURCES (Backend) ---
 #[derive(SystemParam)]
 pub struct LightRenderer<'w, 's> {
-    // Query to find lights from the previous frame for cleanup
-    pub q_lights: Query<'w, 's, Entity, With<ImmediateLight>>,
+    // Query with Option<> to detect which light type exists
+    pub q_lights: Query<'w, 's, (
+        Entity,
+        Option<&'static mut PointLight>,
+        Option<&'static mut DirectionalLight>,
+        &'static mut Transform,
+        &'static mut Visibility,
+        &'static mut RenderLayers
+    ), With<ImmediateLight>>,
 }
 
-// --- 5. SPAWN HELPER (Called by UnifiedRenderer) ---
+// --- 5. PROCESS HELPER ---
 pub fn process_light(
     commands: &mut Commands,
+    renderer: &mut LightRenderer, // CHANGED: Takes mutable renderer
     entity_opt: Option<Entity>,
     cmd: LightCommand
 ) {
-    let mut e = if let Some(entity) = entity_opt {
-        commands.entity(entity)
-    } else {
-        commands.spawn((
-            ImmediateLight,
-        ))
-    };
+    // 1. FAST PATH
+    if let Some(entity) = entity_opt {
+        if let Ok((e, mut pl, mut dl, mut xform, mut vis, mut layers)) = renderer.q_lights.get_mut(entity) {
 
-    // Important: We must ensure we clean up the *wrong* light type if switching
-    // e.g. Point -> Directional.
-    // The safest "recycle" is to remove both light components and add the new one.
-    e.remove::<PointLight>().remove::<DirectionalLight>();
+            // Helper to reset common properties
+            *vis = Visibility::Visible;
+            *layers = RenderLayers::layer(match cmd {
+                LightCommand::Point { layer, .. } => layer,
+                LightCommand::Directional { layer, .. } => layer
+            });
+
+            match cmd {
+                LightCommand::Point { position, color, intensity, radius, .. } => {
+                    xform.translation = position;
+                    xform.rotation = Quat::IDENTITY;
+
+                    if let Some(ref mut light) = pl {
+                        // Recycled correctly
+                        light.color = color;
+                        light.intensity = intensity;
+                        light.range = radius;
+                    } else {
+                        // Wrong type: Use commands to swap components (cannot update this frame)
+                        commands.entity(e)
+                            .remove::<DirectionalLight>()
+                            .insert(PointLight {
+                                color, intensity, range: radius, shadows_enabled: true, ..default()
+                            });
+                    }
+                    return;
+                },
+                LightCommand::Directional { direction, color, illuminance, .. } => {
+                    xform.rotation = Quat::from_rotation_arc(Vec3::NEG_Z, direction.normalize_or_zero());
+                    xform.translation = Vec3::ZERO;
+
+                    if let Some(ref mut light) = dl {
+                        // Recycled correctly
+                        light.color = color;
+                        light.illuminance = illuminance;
+                    } else {
+                        // Wrong type
+                        commands.entity(e)
+                            .remove::<PointLight>()
+                            .insert(DirectionalLight {
+                                color, illuminance, shadows_enabled: true, ..default()
+                            });
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    // 2. SLOW PATH (Spawn New)
+    let mut e = commands.spawn(ImmediateLight);
 
     match cmd {
         LightCommand::Point { position, color, intensity, radius, layer } => {
             e.insert((
-                PointLight {
-                    color,
-                    intensity,
-                    range: radius,
-                    shadows_enabled: true,
-                    ..default()
-                },
+                PointLight { color, intensity, range: radius, shadows_enabled: true, ..default() },
                 Transform::from_translation(position),
                 RenderLayers::layer(layer),
                 Visibility::Visible,
@@ -100,12 +144,7 @@ pub fn process_light(
         LightCommand::Directional { direction, color, illuminance, layer } => {
             let rotation = Quat::from_rotation_arc(Vec3::NEG_Z, direction.normalize_or_zero());
             e.insert((
-                DirectionalLight {
-                    color,
-                    illuminance,
-                    shadows_enabled: true,
-                    ..default()
-                },
+                DirectionalLight { color, illuminance, shadows_enabled: true, ..default() },
                 Transform::from_rotation(rotation),
                 RenderLayers::layer(layer),
                 Visibility::Visible,

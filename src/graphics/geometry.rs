@@ -419,7 +419,7 @@ pub fn process_geometry(
     // =====================================================================
     //  SLOW PATH: REBUILD
     // =====================================================================
-
+    
     // 1. Cleanup logic (Same as before: remove transient meshes, strip components)
     if let Some(entity) = entity_opt {
         if let Ok((_, res)) = renderer.q_transient.get(entity) {
