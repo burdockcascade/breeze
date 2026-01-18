@@ -13,14 +13,14 @@ pub enum LightCommand {
         color: Color,
         intensity: f32,
         radius: f32,
-        shadows: bool, // NEW FIELD
+        shadows: bool,
         layer: usize,
     },
     Directional {
         direction: Vec3,
         color: Color,
         illuminance: f32,
-        shadows: bool, // NEW FIELD
+        shadows: bool,
         layer: usize,
     },
 }
