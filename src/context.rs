@@ -23,18 +23,24 @@ pub struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
+
+    /// Load an image asset from the specified path.
     pub fn load_image(&self, path: &str) -> Handle<Image> {
         self.asset_server.load(path.to_owned())
     }
 
+
+    /// Load a 3D scene asset from the specified path.
     pub fn load_scene(&self, path: &str) -> Handle<Scene> {
         self.asset_server.load(path.to_owned())
     }
 
+    /// Load a font asset from the specified path.
     pub fn load_font(&self, path: &str) -> Handle<Font> {
         self.asset_server.load(path.to_owned())
     }
 
+    /// Get the current frames per second (FPS) value.
     pub fn fps(&self) -> f32 {
         self.fps.show_value
     }
@@ -59,10 +65,14 @@ pub struct LayerContext<'a> {
 }
 
 impl<'a> LayerContext<'a> {
+
+    /// Set the camera mode for this layer.
     pub fn set_camera(&mut self, mode: CameraMode) {
         self.camera_queue.0.push((self.layer_id, mode));
     }
 
+
+    /// Draw the current FPS value at the specified position with the given color.
     pub fn draw_fps(&self, pos: Vec2, color: Color) {
         let text = format!("FPS: {:.0}", self.fps.show_value);
         self.text.draw_ext(&text, pos, 32.0, color);
@@ -80,6 +90,7 @@ pub struct DrawContext<'a> {
 
 impl <'a> DrawContext<'a> {
 
+    /// Execute a closure with a specific layer context.
     pub fn with_layer<F>(&mut self, id: usize, f: F)
     where
         F: FnOnce(&mut LayerContext)
