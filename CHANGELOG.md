@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.3.0](https://github.com/burdockcascade/breeze/compare/breeze-v0.2.2...breeze-v0.3.0) (2026-01-19)
+
+
+### ✨ Features
+
+* add basic 3d shapes ([58bcff1](https://github.com/burdockcascade/breeze/commit/58bcff1cb734cea7d7bf7718cfce691f39e298bc))
+* add basic support for point and directional lights in shape rendering ([b53c911](https://github.com/burdockcascade/breeze/commit/b53c91158a4519f3b74955153c19f2b64ffe8549))
+* add FPS display to UI and integrate FPS resource into context ([d091170](https://github.com/burdockcascade/breeze/commit/d0911709238c44dd62968f017ee3fbbd9e34170c))
+* add shadows support to point and directional lights in the rendering system ([3e5b070](https://github.com/burdockcascade/breeze/commit/3e5b070ca24ef6fa653e630eb0b0925beb86ab50))
+* add unified graphics command system with new commands and renderer ([cafad02](https://github.com/burdockcascade/breeze/commit/cafad02a1fa3aef65093888ddfd3ea25bb77f43c))
+* enhance light and text rendering systems with mutable access for improved processing ([1bfe90d](https://github.com/burdockcascade/breeze/commit/1bfe90daa85e52f29cec10a2375a19af938b9d2f))
+* implement FPS monitoring and display in the UI ([dc32f26](https://github.com/burdockcascade/breeze/commit/dc32f26d7bdbb752e102496e506c7c1f6aeae4e6))
+* implement material caching for 2D and 3D geometry rendering ([4cf0b43](https://github.com/burdockcascade/breeze/commit/4cf0b432b9321842d6c748e1826a180408f7d8d8))
+* optimize geometry processing and entity management in the renderer ([5579b56](https://github.com/burdockcascade/breeze/commit/5579b566faa4e89fd83892aeabb2508ac48ec4ed))
+* refactor main function to use Breeze builder for configuration in multiple examples ([6bc1920](https://github.com/burdockcascade/breeze/commit/6bc19202894452cd95ba3ed3b94697ab82f24a98))
+* refactor rendering helpers to support entity recycling and cleanup ([7cf0129](https://github.com/burdockcascade/breeze/commit/7cf0129b6560ff1146569f31fbf8b8f3ba218933))
+* reorganize geometry and rendering systems for improved material caching and command processing ([cc3b53c](https://github.com/burdockcascade/breeze/commit/cc3b53cba3eb0e5c5b5f668e283e835acc4d9a8d))
+
+
+### ♻️ Code Refactoring
+
+* add documentation for shape drawing methods in shapes.rs ([a2bcbaf](https://github.com/burdockcascade/breeze/commit/a2bcbaf4bcb5c01d6d2547ccf4faf91e4e6176b9))
+* clean out comments ([6f580ad](https://github.com/burdockcascade/breeze/commit/6f580adbfc6eba0f81d72353760b936a55f224b0))
+* clean up comments and improve documentation in geometry, lights, sprite, text, and context modules ([d6199b5](https://github.com/burdockcascade/breeze/commit/d6199b58c7ee0a5bea42cb6b454b30c47a1efacf))
+* clear background in draw method of hello_text.rs ([4a4eace](https://github.com/burdockcascade/breeze/commit/4a4eaceb489d217998dd47d78518a3d2488d88ce))
+* rename shapes module to geometry and update related drawing methods ([2dcebdb](https://github.com/burdockcascade/breeze/commit/2dcebdbd826fc86140065d640866581f111e512a))
+
+
+### 📚 Documentation
+
+* add documentation comments for asset loading and context methods ([0a6b955](https://github.com/burdockcascade/breeze/commit/0a6b955b4d888843f1b89c496fb7be25c879cf05))
+
 ## [0.2.2](https://github.com/burdockcascade/breeze/compare/breeze-v0.2.1...breeze-v0.2.2) (2026-01-14)
 
 
