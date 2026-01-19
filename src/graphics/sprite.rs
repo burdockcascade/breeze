@@ -4,7 +4,7 @@ use bevy::ecs::system::SystemParam;
 use std::cell::RefCell;
 use crate::graphics::commands::{GraphicsCommand, GraphicsQueue};
 
-// ... SpriteCommand, ImmediateSprite, SpriteContext (Same as before) ...
+
 #[derive(Clone)]
 pub struct SpriteCommand {
     pub image: Handle<Image>,
@@ -19,22 +19,18 @@ pub struct ImmediateSprite;
 
 pub struct SpriteContext<'a> {
     pub queue: &'a RefCell<&'a mut GraphicsQueue>,
-    pub asset_server: &'a AssetServer,
     pub layer_id: usize,
 }
 
 impl<'a> SpriteContext<'a> {
 
-    pub fn load(&self, path: &str) -> Handle<Image> {
-        self.asset_server.load(path.to_owned())
-    }
-
+    /// Draw a sprite at the specified position with default scale and color.
     pub fn draw(&self, image: &Handle<Image>, x: f32, y: f32) {
         self.draw_ext(image, x, y, 1.0, Color::WHITE);
     }
 
+    /// Draw a sprite at the specified position with scale and color.
     pub fn draw_ext(&self, image: &Handle<Image>, x: f32, y: f32, scale: f32, color: Color) {
-        // Push to the Global Queue
         self.queue.borrow_mut().0.push(GraphicsCommand::Sprite(SpriteCommand {
             image: image.clone(),
             position: Vec2::new(x, y),
@@ -45,7 +41,7 @@ impl<'a> SpriteContext<'a> {
     }
 }
 
-// --- 4. RENDERER RESOURCES (Backend) ---
+/// Sprite Renderer System Param
 #[derive(SystemParam)]
 pub struct SpriteRenderer<'w, 's> {
     pub q_sprites: Query<'w, 's, (
@@ -59,37 +55,31 @@ pub struct SpriteRenderer<'w, 's> {
     pub _marker: std::marker::PhantomData<&'s ()>,
 }
 
-// --- OPTIMIZED PROCESS FUNCTION ---
-pub fn process_sprite(
-    commands: &mut Commands,
-    renderer: &mut SpriteRenderer, // Now takes mutable renderer
-    entity_opt: Option<Entity>,
-    cmd: SpriteCommand
-) {
-    // 1. FAST PATH: Direct Mutation (Zero Allocation, Zero Command Overhead)
+/// Process a single sprite command, either updating an existing entity or spawning a new one.
+pub fn process_sprite(commands: &mut Commands, renderer: &mut SpriteRenderer, entity_opt: Option<Entity>, cmd: SpriteCommand) {
+    
+    // Direct Mutation (Zero Allocation, Zero Command Overhead)
     if let Some(entity) = entity_opt {
         if let Ok((_, mut sprite, mut transform, mut vis, mut layers)) = renderer.q_sprites.get_mut(entity) {
 
-            // Just assign the values! Bevy is very fast at this.
             sprite.image = cmd.image;
             sprite.color = cmd.color;
-            // Reset standard fields in case they were changed (optional but safe)
             sprite.flip_x = false;
             sprite.flip_y = false;
             sprite.custom_size = None;
 
             transform.translation = cmd.position.extend(0.0);
             transform.scale = cmd.scale.extend(1.0);
-            transform.rotation = Quat::IDENTITY; // Reset rotation
-
-            *vis = Visibility::Visible; // Wake up hidden sprite
+            transform.rotation = Quat::IDENTITY; 
+            
+            *vis = Visibility::Visible; 
             *layers = RenderLayers::layer(cmd.layer);
 
-            return; // Done! skipped commands.spawn entirely.
+            return; 
         }
     }
 
-    // 2. SLOW PATH: Spawn New Entity (First run or pool empty)
+    // Spawn New Entity (First run or pool empty)
     commands.spawn((
         Sprite {
             image: cmd.image,

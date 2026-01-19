@@ -111,7 +111,6 @@ impl <'a> DrawContext<'a> {
 
             sprites: SpriteContext {
                 queue: &queue_cell,
-                asset_server: self.asset_server,
                 layer_id: id
             },
 

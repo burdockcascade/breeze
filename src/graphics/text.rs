@@ -6,7 +6,6 @@ use std::cell::RefCell;
 // Import the Unified Types
 use crate::graphics::commands::{GraphicsCommand, GraphicsQueue};
 
-// --- 1. COMMAND DATA ---
 #[derive(Clone)]
 pub struct TextCommand {
     pub text: String,
@@ -17,11 +16,9 @@ pub struct TextCommand {
     pub layer: usize,
 }
 
-// --- 2. MARKER COMPONENT (For Cleanup) ---
 #[derive(Component)]
 pub struct ImmediateText;
 
-// --- 3. CONTEXT (Frontend) ---
 pub struct TextContext<'a> {
     pub queue: &'a RefCell<&'a mut GraphicsQueue>,
     pub layer_id: usize,
@@ -29,10 +26,12 @@ pub struct TextContext<'a> {
 
 impl<'a> TextContext<'a> {
 
+    /// Draw text at the specified position with default size and color.
     pub fn draw(&self, text: impl Into<String>, position: Vec2) {
         self.draw_pro(&Handle::default(), text, position, 16.0, Color::BLACK);
     }
 
+    /// Draw text at the specified position with size and color.
     pub fn draw_ext(&self, text: impl Into<String>, position: Vec2, size: f32, color: Color) {
         self.draw_pro(&Handle::default(), text, position, size, color);
     }
@@ -50,11 +49,9 @@ impl<'a> TextContext<'a> {
     }
 }
 
-// --- 4. RENDERER RESOURCES (Backend) ---
+/// Text Renderer System Param
 #[derive(SystemParam)]
 pub struct TextRenderer<'w, 's> {
-    // Query to find text entities from the previous frame for cleanup
-    // We add components here to allow Mutable access (Fast Path)
     pub q_text: Query<'w, 's, (
         Entity,
         &'static mut Text2d,
@@ -66,14 +63,10 @@ pub struct TextRenderer<'w, 's> {
     ), With<ImmediateText>>,
 }
 
-// --- 5. SPAWN HELPER (Called by UnifiedRenderer) ---
-pub fn process_text(
-    commands: &mut Commands,
-    renderer: &mut TextRenderer, // CHANGED: Now takes mutable renderer
-    entity_opt: Option<Entity>,
-    cmd: TextCommand
-) {
-    // 1. FAST PATH: Update existing entity
+/// Process a TextCommand: update existing or spawn new.
+pub fn process_text(commands: &mut Commands, renderer: &mut TextRenderer, entity_opt: Option<Entity>, cmd: TextCommand) {
+    
+    // Update existing entity
     if let Some(entity) = entity_opt {
         if let Ok((_, mut txt, mut font, mut color, mut xform, mut vis, mut layers)) = renderer.q_text.get_mut(entity) {
             txt.0 = cmd.text;
@@ -87,7 +80,7 @@ pub fn process_text(
         }
     }
 
-    // 2. SLOW PATH: Spawn new
+    // Spawn new
     commands.spawn((
         ImmediateText,
         Text2d::new(cmd.text),

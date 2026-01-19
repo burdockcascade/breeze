@@ -7,10 +7,6 @@ use std::hash::{Hash, Hasher};
 
 use crate::graphics::commands::{GraphicsCommand, GraphicsQueue};
 
-// =================================================================================
-//  BACKEND: RESOURCES & COMMANDS
-// =================================================================================
-
 /// Shared resource to store the Unit meshes so we don't recreate them every frame.
 #[derive(Resource)]
 pub struct GlobalGeometryResources {
@@ -243,15 +239,8 @@ pub struct GeometryRenderer<'w, 's> {
     )>,
 }
 
-pub fn process_geometry(
-    commands: &mut Commands,
-    renderer: &mut GeometryRenderer,
-    entity_opt: Option<Entity>,
-    command: GeometryCommand
-) {
-    // =====================================================================
-    //  FAST PATH: MUTATION
-    // =====================================================================
+pub fn process_geometry(commands: &mut Commands, renderer: &mut GeometryRenderer, entity_opt: Option<Entity>, command: GeometryCommand) {
+
     if let Some(entity) = entity_opt {
         let mut clear_transient = |e: Entity| {
             if let Ok((_, mut res)) = renderer.q_transient.get_mut(e) {
@@ -261,8 +250,6 @@ pub fn process_geometry(
         };
 
         match &command {
-            // --- 2D SHAPES ---
-            // Use shapes.p0() for Mesh2d
             GeometryCommand::Circle { position, radius, color, layer } => {
                 if let Ok((mut mesh, mut mat, mut xform, mut vis, mut layers)) = renderer.shapes.p0().get_mut(entity) {
                     mesh.0 = renderer.global_geo.circle.clone();
@@ -397,9 +384,6 @@ pub fn process_geometry(
                     return;
                 }
             },
-
-            // --- MODEL ---
-            // Use shapes.p2() for SceneRoot
             GeometryCommand::Model { position, rotation, scale, scene, layer } => {
                 if let Ok((mut scene_root, mut xform, mut vis, mut layers)) = renderer.shapes.p2().get_mut(entity) {
                     if scene_root.0 != *scene { scene_root.0 = scene.clone(); }
@@ -416,11 +400,6 @@ pub fn process_geometry(
         }
     }
 
-    // =====================================================================
-    //  SLOW PATH: REBUILD
-    // =====================================================================
-    
-    // 1. Cleanup logic (Same as before: remove transient meshes, strip components)
     if let Some(entity) = entity_opt {
         if let Ok((_, res)) = renderer.q_transient.get(entity) {
             if let Some(handle) = &res.mesh { renderer.meshes.remove(handle); }
@@ -435,7 +414,6 @@ pub fn process_geometry(
 
     let mut cmd_entity = if let Some(e) = entity_opt { commands.entity(e) } else { commands.spawn(()) };
 
-    // 2. Insert Bundles
     match command {
         // --- 2D ---
         GeometryCommand::Circle { position, radius, color, layer } => {

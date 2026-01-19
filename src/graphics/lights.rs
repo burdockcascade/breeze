@@ -5,7 +5,6 @@ use std::cell::RefCell;
 
 use crate::graphics::commands::{GraphicsCommand, GraphicsQueue};
 
-// --- 1. COMMAND DATA ---
 #[derive(Clone)]
 pub enum LightCommand {
     Point {
@@ -25,11 +24,9 @@ pub enum LightCommand {
     },
 }
 
-// --- 2. MARKER COMPONENT ---
 #[derive(Component)]
 pub struct ImmediateLight;
 
-// --- 3. CONTEXT (Frontend) ---
 pub struct LightContext<'a> {
     pub queue: &'a RefCell<&'a mut GraphicsQueue>,
     pub layer_id: usize,
@@ -37,7 +34,7 @@ pub struct LightContext<'a> {
 
 impl<'a> LightContext<'a> {
 
-    // Added 'shadows' parameter
+    /// Create a point light with the specified position, color, intensity, radius, and shadows.
     pub fn point(&self, position: Vec3, color: Color, intensity: f32, radius: f32, shadows: bool) {
         self.queue.borrow_mut().0.push(GraphicsCommand::Light(LightCommand::Point {
             position,
@@ -49,7 +46,7 @@ impl<'a> LightContext<'a> {
         }));
     }
 
-    // Added 'shadows' parameter
+    /// Create a directional light with the specified direction, color, illuminance, and shadows.
     pub fn directional(&self, direction: Vec3, color: Color, illuminance: f32, shadows: bool) {
         self.queue.borrow_mut().0.push(GraphicsCommand::Light(LightCommand::Directional {
             direction,
@@ -73,14 +70,9 @@ pub struct LightRenderer<'w, 's> {
     ), With<ImmediateLight>>,
 }
 
-// --- 5. PROCESS HELPER ---
-pub fn process_light(
-    commands: &mut Commands,
-    renderer: &mut LightRenderer,
-    entity_opt: Option<Entity>,
-    cmd: LightCommand
-) {
-    // 1. FAST PATH
+/// Process a light command, updating an existing light or spawning a new one.
+pub fn process_light(commands: &mut Commands, renderer: &mut LightRenderer, entity_opt: Option<Entity>, cmd: LightCommand) {
+    
     if let Some(entity) = entity_opt {
         if let Ok((e, mut pl, mut dl, mut xform, mut vis, mut layers)) = renderer.q_lights.get_mut(entity) {
 
@@ -99,7 +91,7 @@ pub fn process_light(
                         light.color = color;
                         light.intensity = intensity;
                         light.range = radius;
-                        light.shadows_enabled = shadows; // UPDATE SHADOWS
+                        light.shadows_enabled = shadows;
                     } else {
                         commands.entity(e)
                             .remove::<DirectionalLight>()
@@ -130,7 +122,6 @@ pub fn process_light(
         }
     }
 
-    // 2. SLOW PATH (Spawn New)
     let mut e = commands.spawn(ImmediateLight);
 
     match cmd {
