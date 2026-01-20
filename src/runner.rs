@@ -1,9 +1,10 @@
 use crate::core::scene::Scene;
 use bevy::camera::visibility::RenderLayers;
-use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameCount, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
+use bevy::render::renderer::RenderAdapterInfo;
 use bevy::window::{PresentMode, PrimaryWindow};
 
 use crate::core::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
@@ -12,6 +13,7 @@ use crate::context::{Context, DrawContext};
 use crate::core::fps::{monitor_fps, FpsResource};
 use crate::core::input::InputContext;
 use crate::core::scene::SceneManager;
+use crate::core::system::SystemContext;
 use crate::core::window::WindowContext;
 
 use crate::graphics::commands::GraphicsQueue;
@@ -109,6 +111,9 @@ pub struct EngineContext<'w, 's> {
     pub keys: Res<'w, ButtonInput<KeyCode>>,
     pub mouse_buttons: Res<'w, ButtonInput<MouseButton>>,
 
+    pub renderer_info: Option<Res<'w, RenderAdapterInfo>>,
+    pub frame_count: Option<Res<'w, FrameCount>>,
+
     pub q_window: Query<'w, 's, &'static mut Window, With<PrimaryWindow>>,
     pub q_camera: Query<'w, 's, (&'static Camera, &'static GlobalTransform, Option<&'static RenderLayers>), With<Camera>>,
 
@@ -120,6 +125,16 @@ pub fn internal_game_loop(mut manager: NonSendMut<SceneManager>, mut engine: Eng
     if manager.should_quit {
         return;
     }
+
+    // Extract GPU info if available
+    let (gpu_name, backend) = if let Some(info) = engine.renderer_info {
+        (Some(info.name.clone()), Some(format!("{:?}", info.backend)))
+    } else {
+        (None, None)
+    };
+
+    // Extract Frame Count
+    let frame_count = engine.frame_count.map(|f| f.0).unwrap_or(0);
 
     let mut primary_window_result = engine.q_window.single_mut();
 
@@ -161,6 +176,11 @@ pub fn internal_game_loop(mut manager: NonSendMut<SceneManager>, mut engine: Eng
                 window: WindowContext {
                     window
                 },
+                system: SystemContext {
+                    gpu_name,
+                    backend,
+                    frame_count,
+                }
             };
 
             if !state.initialized {

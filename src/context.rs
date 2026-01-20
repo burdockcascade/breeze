@@ -5,6 +5,7 @@ use crate::core::audio::AudioContext;
 use crate::camera::{CameraMode, CameraQueue};
 use crate::core::fps::FpsResource;
 use crate::core::input::InputContext;
+use crate::core::system::SystemContext;
 use crate::core::window::WindowContext;
 
 use crate::graphics::commands::GraphicsQueue;
@@ -20,6 +21,7 @@ pub struct Context<'a> {
     pub asset_server: &'a AssetServer,
     pub audio: AudioContext<'a>,
     pub window: WindowContext<'a>,
+    pub system: SystemContext,
 }
 
 impl<'a> Context<'a> {

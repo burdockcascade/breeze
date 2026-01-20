@@ -3,6 +3,10 @@ use breeze::prelude::*;
 struct MyGame;
 
 impl Scene for MyGame {
+    fn init(&mut self, ctx: &mut Context) {
+        println!("Running on OS : {}", ctx.system.os());
+    }
+
     fn draw(&mut self, ctx: &mut DrawContext) {
         ctx.clear_background(WHITE.into());
         ctx.with_layer(0, |ui| {
