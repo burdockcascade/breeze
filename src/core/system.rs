@@ -1,9 +1,21 @@
+/// Represents a physical display monitor.
+#[derive(Clone, Debug)]
+pub struct MonitorInfo {
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub refresh_rate: f32,
+    pub scale_factor: f64,
+}
+
 /// Provides access to system information.
 pub struct SystemContext {
     pub(crate) gpu_name: Option<String>,
     pub(crate) backend: Option<String>,
     pub(crate) frame_count: u32,
+    pub(crate) monitors: Vec<MonitorInfo>,
 }
+
 impl SystemContext {
     /// Get the name of the operating system (e.g., "linux", "windows", "macos").
     pub fn os(&self) -> &'static str {
@@ -43,5 +55,18 @@ impl SystemContext {
     /// Get the total number of frames rendered since the app started.
     pub fn frame_count(&self) -> u32 {
         self.frame_count
+    }
+
+    /// Get a list of all detected monitors.
+    pub fn monitors(&self) -> &[MonitorInfo] {
+        &self.monitors
+    }
+
+    /// Get the resolution of the primary monitor as a tuple (width, height).
+    /// Returns (0,0) if no monitors are detected.
+    pub fn primary_resolution(&self) -> (u32, u32) {
+        self.monitors.first()
+            .map(|m| (m.width, m.height))
+            .unwrap_or((0, 0))
     }
 }

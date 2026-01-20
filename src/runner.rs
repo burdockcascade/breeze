@@ -6,14 +6,14 @@ use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::render::renderer::RenderAdapterInfo;
 use bevy::window::{PresentMode, PrimaryWindow};
-
+use bevy::winit::WinitWindows;
 use crate::core::audio::{play_audio, ActiveLoops, AudioContext, AudioQueue};
 use crate::camera::{manage_cameras, CameraQueue};
 use crate::context::{Context, DrawContext};
 use crate::core::fps::{monitor_fps, FpsResource};
 use crate::core::input::InputContext;
 use crate::core::scene::SceneManager;
-use crate::core::system::SystemContext;
+use crate::core::system::{MonitorInfo, SystemContext};
 use crate::core::window::WindowContext;
 
 use crate::graphics::commands::GraphicsQueue;
@@ -120,10 +120,46 @@ pub struct EngineContext<'w, 's> {
     pub clear_color: ResMut<'w, ClearColor>,
 }
 
-pub fn internal_game_loop(mut manager: NonSendMut<SceneManager>, mut engine: EngineContext, mut state: Local<InternalState>) {
+pub fn internal_game_loop(mut manager: NonSendMut<SceneManager>, mut engine: EngineContext, mut state: Local<InternalState>, winit_windows: Option<NonSend<WinitWindows>>,) {
 
     if manager.should_quit {
         return;
+    }
+
+    let mut monitor_list = Vec::new();
+
+    if let Some(winit) = &winit_windows {
+        // Iterate over all actual windows (usually just one, but we check the monitors it sees)
+        for window in winit.windows.values() {
+            if let Some(monitor) = window.current_monitor() {
+                // In a real multi-monitor setup, you might iterate winit's `available_monitors()`
+                // But accessing the current one is the safest default for now.
+
+                let size = monitor.size();
+                // Refresh rate is often wrapped in video modes,
+                // defaulting to 60.0 if we can't easily query modes here.
+                let refresh_rate = monitor.refresh_rate_millihertz().unwrap_or(60000) as f32 / 1000.0;
+
+                monitor_list.push(MonitorInfo {
+                    name: monitor.name().unwrap_or_else(|| "Generic Display".into()),
+                    width: size.width,
+                    height: size.height,
+                    refresh_rate,
+                    scale_factor: monitor.scale_factor(),
+                });
+            }
+        }
+    }
+
+    // Fallback if list is empty (e.g. headless or first frame weirdness)
+    if monitor_list.is_empty() {
+        monitor_list.push(MonitorInfo {
+            name: "Unknown".into(),
+            width: 0,
+            height: 0,
+            refresh_rate: 0.0,
+            scale_factor: 1.0,
+        });
     }
 
     // Extract GPU info if available
@@ -180,7 +216,8 @@ pub fn internal_game_loop(mut manager: NonSendMut<SceneManager>, mut engine: Eng
                     gpu_name,
                     backend,
                     frame_count,
-                }
+                    monitors: monitor_list,
+                },
             };
 
             if !state.initialized {
@@ -245,10 +282,6 @@ fn run(config: AppConfig, manager: SceneManager) {
             LogDiagnosticsPlugin::default(),
             EntityCountDiagnosticsPlugin::default(),
         ));
-    }
-
-    if config.enable_logging {
-        app.add_plugins(LogPlugin::default());
     }
 
     app.run();
