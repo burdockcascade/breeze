@@ -1,10 +1,11 @@
+use breeze::ImageAsset;
 use breeze::prelude::*;
 
 struct MyGame {
-    breeze_logo: Handle<Image>,
+    breeze_logo: ImageAsset,
 }
 
-impl Game for MyGame {
+impl Scene for MyGame {
     fn init(&mut self, ctx: &mut Context) {
         // Load the logo sprite
         self.breeze_logo = ctx.load_image("breeze.png");
@@ -38,6 +39,6 @@ fn main() {
         .title("Hello, Sprite!")
         .resolution(1280, 720)
         .run(MyGame {
-            breeze_logo: Handle::default() // Start with empty handle
+            breeze_logo: ImageAsset::default() // Start with empty handle
         });
 }

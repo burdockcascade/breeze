@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 struct AnalogClock;
 
-impl Game for AnalogClock {
+impl Scene for AnalogClock {
     fn draw(&mut self, ctx: &mut DrawContext) {
         // Clear background with a dark color
         ctx.clear_background(Color::from(DARK_SLATE_GRAY));

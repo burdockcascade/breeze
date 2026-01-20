@@ -1,19 +1,17 @@
-use std::default;
 use breeze::prelude::*;
 
 struct MyGame {
     is_fullscreen: bool,
 }
 
-impl Game for MyGame {
-    fn init(&mut self, _ctx: &mut Context) {
-    }
+impl Scene for MyGame {
 
-    fn update(&mut self, ctx: &mut Context) {
+    fn update(&mut self, ctx: &mut Context) -> SceneTransition {
         if ctx.input.key_pressed(KeyCode::Enter) && ctx.input.key_down(KeyCode::AltLeft) {
             self.is_fullscreen = !self.is_fullscreen;
             ctx.window.set_fullscreen(self.is_fullscreen);
         }
+        SceneTransition::None
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {

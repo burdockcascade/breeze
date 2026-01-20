@@ -5,9 +5,9 @@ struct MyGame {
     camera_scale: f32,
 }
 
-impl Game for MyGame {
+impl Scene for MyGame {
 
-    fn update(&mut self, ctx: &mut Context) {
+    fn update(&mut self, ctx: &mut Context) -> SceneTransition {
 
         let speed = 400.0 * ctx.time.delta_secs();
 
@@ -33,6 +33,7 @@ impl Game for MyGame {
             self.camera_scale /= 1.02;
         }
 
+        SceneTransition::None
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {

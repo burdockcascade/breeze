@@ -13,7 +13,7 @@ struct Bunny {
 
 struct BunnyMarkGame {
     bunnies: Vec<Bunny>,
-    texture: Handle<Image>,
+    texture: ImageAsset,
     paused: bool,
 }
 
@@ -21,7 +21,7 @@ impl BunnyMarkGame {
     fn new() -> Self {
         Self {
             bunnies: Vec::new(),
-            texture: Handle::default(),
+            texture: Default::default(),
             paused: false,
         }
     }
@@ -48,12 +48,12 @@ impl BunnyMarkGame {
 
 // --- Game Implementation ---
 
-impl Game for BunnyMarkGame {
+impl Scene for BunnyMarkGame {
     fn init(&mut self, ctx: &mut Context) {
         self.texture = ctx.load_image("bunny.png");
     }
 
-    fn update(&mut self, ctx: &mut Context) {
+    fn update(&mut self, ctx: &mut Context) -> SceneTransition {
         // Input: Space to add 1000 bunnies
         if ctx.input.key_down(KeyCode::Space) {
             self.add_bunnies(1000);
@@ -110,6 +110,8 @@ impl Game for BunnyMarkGame {
                 }
             }
         }
+        
+        SceneTransition::None
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {

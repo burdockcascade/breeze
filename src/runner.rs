@@ -1,3 +1,4 @@
+use crate::core::scene::Scene;
 use bevy::camera::visibility::RenderLayers;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
@@ -10,6 +11,7 @@ use crate::camera::{manage_cameras, CameraQueue};
 use crate::context::{Context, DrawContext};
 use crate::core::fps::{monitor_fps, FpsResource};
 use crate::core::input::InputContext;
+use crate::core::scene::SceneManager;
 use crate::core::window::WindowContext;
 
 use crate::graphics::commands::GraphicsQueue;
@@ -75,8 +77,9 @@ impl Breeze {
     }
 
     /// Consumes the builder and runs the game.
-    pub fn run<G: Game>(self, game: G) {
-        run(self.config, game);
+    pub fn run(self, initial_scene: impl Scene + 'static) {
+        let manager = SceneManager::new(initial_scene);
+        run(self.config, manager);
     }
 }
 
@@ -86,12 +89,6 @@ impl Default for Breeze {
             config: AppConfig::default(),
         }
     }
-}
-
-pub trait Game: Send + Sync + 'static {
-    fn init(&mut self, _ctx: &mut Context) {}
-    fn update(&mut self, _ctx: &mut Context) {}
-    fn draw(&mut self, ctx: &mut DrawContext);
 }
 
 #[derive(Default)]
@@ -118,7 +115,11 @@ pub struct EngineContext<'w, 's> {
     pub clear_color: ResMut<'w, ClearColor>,
 }
 
-pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineContext, mut state: Local<InternalState>) {
+pub fn internal_game_loop(mut manager: NonSendMut<SceneManager>, mut engine: EngineContext, mut state: Local<InternalState>) {
+
+    if manager.should_quit {
+        return;
+    }
 
     let mut primary_window_result = engine.q_window.single_mut();
 
@@ -163,11 +164,13 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
             };
 
             if !state.initialized {
-                game.init(&mut ctx);
+                if let Some(scene) = manager.stack.last_mut() {
+                    scene.init(&mut ctx);
+                }
                 state.initialized = true;
             }
 
-            game.update(&mut ctx);
+            manager.update(&mut ctx);
         }
 
         {
@@ -179,12 +182,12 @@ pub fn internal_game_loop<G: Game>(mut game: NonSendMut<G>, mut engine: EngineCo
                 clear_color: &mut engine.clear_color,
                 camera_queue: &mut engine.camera_queue,
             };
-            game.draw(&mut draw_ctx);
+            manager.draw(&mut draw_ctx);
         }
     }
 }
 
-fn run<G: Game>(config: AppConfig, game: G) {
+fn run(config: AppConfig, manager: SceneManager) {
     let mut binding = App::new();
 
     let default_plugin_set = DefaultPlugins.set(WindowPlugin {
@@ -207,9 +210,9 @@ fn run<G: Game>(config: AppConfig, game: G) {
         .insert_resource(ActiveLoops::default())
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(CameraQueue::default())
-        .insert_non_send_resource(game)
+        .insert_non_send_resource(manager)
         .add_systems(Update, (
-            internal_game_loop::<G>,
+            internal_game_loop,
             monitor_fps,
             render_graphics,
             play_audio,

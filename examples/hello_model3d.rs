@@ -1,10 +1,10 @@
 use breeze::prelude::*;
 
 struct MyGame {
-    my_model: Handle<Scene>,
+    my_model: SceneAsset,
 }
 
-impl Game for MyGame {
+impl Scene for MyGame {
     fn init(&mut self, ctx: &mut Context) {
         self.my_model = ctx.load_scene("models/Fox.gltf#Scene0");
     }
@@ -42,6 +42,6 @@ fn main() {
         .title("Hello, Model3D!")
         .resolution(1280, 720)
         .run(MyGame {
-            my_model: Handle::default(), // Start with empty handle
+            my_model: SceneAsset::default(), // Start with empty handle
         }); 
 }

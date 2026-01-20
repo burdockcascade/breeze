@@ -5,8 +5,8 @@ struct ShapeGallery {
     offsets: Vec<f32>,
 }
 
-impl Game for ShapeGallery {
-    fn update(&mut self, ctx: &mut Context) {
+impl Scene for ShapeGallery {
+    fn update(&mut self, ctx: &mut Context) -> SceneTransition {
         let speed = 10.0;
         let dt = ctx.time.delta_secs();
 
@@ -16,6 +16,8 @@ impl Game for ShapeGallery {
         if ctx.input.key_down(KeyCode::ArrowRight) {
             self.camera_x += speed * dt;
         }
+        
+        SceneTransition::None
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {
@@ -114,7 +116,7 @@ impl Game for ShapeGallery {
 fn main() {
     Breeze::default()
         .title("Breeze example")
-        .resolution(800, 600)  
+        .resolution(800, 600)
         .run(ShapeGallery {
             camera_x: 0.0,
             offsets: vec![0.0, 1.0, 2.0, 3.0, 4.0],

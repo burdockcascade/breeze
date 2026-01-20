@@ -2,7 +2,7 @@ use breeze::prelude::*;
 
 struct MyGame;
 
-impl Game for MyGame {
+impl Scene for MyGame {
     fn draw(&mut self, ctx: &mut DrawContext) {
 
         // Set background color to Dark Slate Gray

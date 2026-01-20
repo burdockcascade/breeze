@@ -2,10 +2,7 @@ use breeze::prelude::*;
 
 struct OrbitingLight;
 
-impl Game for OrbitingLight {
-    fn update(&mut self, _ctx: &mut Context) {
-        // No input logic required for this demo
-    }
+impl Scene for OrbitingLight {
 
     fn draw(&mut self, ctx: &mut DrawContext) {
         // 1. Clear background to dark color so lighting stands out

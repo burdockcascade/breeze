@@ -6,14 +6,14 @@ struct MyGame {
     camera: CameraMode,
 }
 
-impl Game for MyGame {
+impl Scene for MyGame {
     fn init(&mut self, ctx: &mut Context) {
         // Celebration by Kamye (from looperman.com)
         ctx.audio.play_loop_vol("music", "celebrate.ogg", 0.5);
         self.music_playing = true;
     }
 
-    fn update(&mut self, ctx: &mut Context) {
+    fn update(&mut self, ctx: &mut Context) -> SceneTransition {
         // Pause music when space is pressed
         if ctx.input.key_pressed(KeyCode::KeyP) {
             if !self.music_playing {
@@ -25,6 +25,7 @@ impl Game for MyGame {
             }
         }
 
+        SceneTransition::None
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {

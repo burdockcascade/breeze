@@ -5,8 +5,8 @@ struct MyGame {
     color: Color,
 }
 
-impl Game for MyGame {
-    fn update(&mut self, ctx: &mut Context) {
+impl Scene for MyGame {
+    fn update(&mut self, ctx: &mut Context) -> SceneTransition {
 
         let speed = 200.0 * ctx.time.delta_secs();
 
@@ -23,6 +23,7 @@ impl Game for MyGame {
             self.color = Color::srgb(1.0, 0.0, 0.0); // Revert to Red
         }
 
+        SceneTransition::None
     }
 
     fn draw(&mut self, ctx: &mut DrawContext) {
