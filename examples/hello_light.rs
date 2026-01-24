@@ -21,15 +21,18 @@ impl Scene for OrbitingLight {
                 Vec3::new(0.0, -1.0, 0.0),
                 Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
                 20.0,
+                None,
                 Color::from(DARK_GRAY)
             );
 
             // 4. Draw the Central Cube
             // We use White to best reflect the color of the light
+            let time = ctx.time.elapsed_secs();
             world.draw3d.cube(
                 Vec3::ZERO,
-                Quat::from_rotation_x(0.5) * Quat::from_rotation_y(0.78),
+                Quat::from_rotation_y(time) * Quat::from_rotation_x((time) * 0.5),
                 2.0,
+                None,
                 Color::from(WHITE),
             );
 
@@ -48,6 +51,7 @@ impl Scene for OrbitingLight {
             world.draw3d.sphere(
                 light_pos,
                 0.2,
+                None,
                 Color::from(YELLOW)
             );
 
@@ -56,7 +60,7 @@ impl Scene for OrbitingLight {
             world.lights.point(
                 light_pos,
                 Color::from(YELLOW),
-                1_000_000.0,
+                100_000.0,
                 20.0,
                 false
             );

@@ -90,7 +90,7 @@ impl Scene for PauseScreen {
             overlay.set_camera(CameraMode::default());
 
             // Semi-transparent black box
-            overlay.draw2d.rect(Vec2::ZERO, Vec2::new(1280.0, 720.0), Color::srgba(0.0, 0.0, 0.0, 0.7));
+            overlay.draw2d.rect(Vec2::ZERO, Vec2::new(1280.0, 720.0), None, Color::srgba(0.0, 0.0, 0.0, 0.7));
             overlay.text.draw("PAUSED", Vec2::ZERO);
         });
     }

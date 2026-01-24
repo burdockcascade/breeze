@@ -2,7 +2,6 @@ use crate::core::scene::Scene;
 use bevy::camera::visibility::RenderLayers;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameCount, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
-use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::render::renderer::RenderAdapterInfo;
 use bevy::window::{PresentMode, PrimaryWindow};

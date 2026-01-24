@@ -21,10 +21,10 @@ impl Scene for MyGame {
             let ring_radius = 100.0 + (ctx.time.elapsed_secs() * 5.0).sin() * 25.0;
 
             // Draw a Circle that moves
-            world.draw2d.circle(vec2(x_pos, 0.0), 60.0, Color::from(CORNFLOWER_BLUE));
+            world.draw2d.circle(vec2(x_pos, 0.0), 60.0, None, Color::from(CORNFLOWER_BLUE));
 
             // Draw a static Rectangle
-            world.draw2d.rect(vec2(0.0, -200.0), vec2(400.0, 50.0), Color::from(DARK_ORANGE));
+            world.draw2d.rect(vec2(0.0, -200.0), vec2(400.0, 50.0), None, Color::from(DARK_ORANGE));
 
             // Draw a Ring that pulses and moves with the circle
             world.draw2d.ring(vec2(x_pos, 0.0), ring_radius, 10.0, Color::from(MEDIUM_SEA_GREEN));

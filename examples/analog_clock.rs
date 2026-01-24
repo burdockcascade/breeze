@@ -74,7 +74,7 @@ impl Scene for AnalogClock {
             draw_hand(world, second_angle, 170.0, 2.0, Color::from(RED));
 
             // Center cap
-            world.draw2d.circle(vec2(0.0, 0.0), 8.0, Color::from(RED));
+            world.draw2d.circle(vec2(0.0, 0.0), 8.0, None, Color::from(RED));
 
             // Draw digital time text for reference
             let time_str = format!("{:02}:{:02}:{:02} UTC", raw_hours, raw_minutes, raw_seconds);

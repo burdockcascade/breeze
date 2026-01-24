@@ -1,11 +1,18 @@
 use breeze::prelude::*;
+use breeze::TextureAsset;
 
 struct ShapeGallery {
     camera_x: f32,
     offsets: Vec<f32>,
+    texture1: Option<TextureAsset>,
 }
 
 impl Scene for ShapeGallery {
+
+    fn init(&mut self, ctx: &mut Context) {
+        self.texture1 = Some(ctx.asset_server.load("breeze.png"));
+    }
+
     fn update(&mut self, ctx: &mut Context) -> SceneTransition {
         let speed = 10.0;
         let dt = ctx.time.delta_secs();
@@ -23,7 +30,7 @@ impl Scene for ShapeGallery {
     fn draw(&mut self, ctx: &mut DrawContext) {
 
         // 2. Clear background
-        ctx.clear_background(Color::from(LIGHT_GRAY));
+        ctx.clear_background(Color::from(BLACK));
 
         ctx.with_layer(0, |world| {
 
@@ -41,10 +48,7 @@ impl Scene for ShapeGallery {
                 target: Vec3::new(self.camera_x, 0.0, 0.0),
             });
 
-            // 4. Draw Floor
-            world.draw3d.plane(Vec3::ZERO, Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2), 50.0, Color::from(DARK_GRAY));
-
-            // 5. Draw a Row of Shapes
+            // Draw a Row of Shapes
             // We'll use a helper variable for spacing
             let spacing = 3.0;
             let time = ctx.time.elapsed_secs();
@@ -62,13 +66,15 @@ impl Scene for ShapeGallery {
                 Vec3::new(0.0, 0.5, 0.0),
                 rot(1),
                 1.0,
-                Color::from(BLUE)
+                self.texture1.clone(),
+                WHITE.into()
             );
 
             // x = 3: Sphere
             world.draw3d.sphere(
                 Vec3::new(spacing, 0.5, 0.0),
                 0.5,
+                None,
                 Color::from(RED)
             );
 
@@ -78,6 +84,7 @@ impl Scene for ShapeGallery {
                 rot(2),
                 0.5,
                 2.0,
+                None,
                 Color::from(LIME)
             );
 
@@ -87,6 +94,7 @@ impl Scene for ShapeGallery {
                 rot(3),
                 0.6,
                 0.2,
+                None,
                 Color::from(FUCHSIA)
             );
 
@@ -96,6 +104,7 @@ impl Scene for ShapeGallery {
                 rot(4),
                 1.0,
                 2.0,
+                None,
                 Color::from(ORANGE)
             );
 
@@ -120,5 +129,6 @@ fn main() {
         .run(ShapeGallery {
             camera_x: 0.0,
             offsets: vec![0.0, 1.0, 2.0, 3.0, 4.0],
+            texture1: None,
         });
 }

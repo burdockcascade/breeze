@@ -18,6 +18,9 @@ pub type FontAsset  = Handle<bevy::prelude::Font>;
 /// Type aliases for common asset handles
 pub type SoundAsset = Handle<bevy::prelude::AudioSource>;
 
+/// Type aliases for common asset handles
+pub type TextureAsset = Handle<Image>;
+
 pub mod prelude {
     pub use crate::core::scene::{Scene, SceneTransition, SceneManager};
 
