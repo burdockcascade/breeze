@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/burdockcascade/breeze/compare/breeze-v0.3.0...breeze-v0.4.0) (2026-01-27)
+
+
+### ✨ Features
+
+* add Scene management ([556b938](https://github.com/burdockcascade/breeze/commit/556b938e66d32fc43f8977dce33a59adf01dc2f7))
+* add SystemContext for system information and integrate into Context ([55fea71](https://github.com/burdockcascade/breeze/commit/55fea7139b16df6a1ad908fb0cee12d251a56e55))
+* enhance SystemContext to include monitor information and update internal game loop for multi-monitor support ([b51146b](https://github.com/burdockcascade/breeze/commit/b51146be3880004119ecb7dc98b72a1bf270901c))
+* update geometry commands to support optional textures and improve material caching ([91914f3](https://github.com/burdockcascade/breeze/commit/91914f3ab914b82008e73de93f476fb465c1a551))
+
+
+### ♻️ Code Refactoring
+
+* clean up comments in hello_light.rs for clarity and conciseness ([73d5bfa](https://github.com/burdockcascade/breeze/commit/73d5bfabb44cfd25e8e550648b1e7a452a89df2d))
+
 ## [0.3.0](https://github.com/burdockcascade/breeze/compare/breeze-v0.2.2...breeze-v0.3.0) (2026-01-19)
 
 
