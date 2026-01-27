@@ -5,27 +5,19 @@ struct OrbitingLight;
 impl Scene for OrbitingLight {
 
     fn draw(&mut self, ctx: &mut DrawContext) {
-        // 1. Clear background to dark color so lighting stands out
+        // Clear background to dark color so lighting stands out
         ctx.clear_background(Color::from(BLACK));
 
         ctx.with_layer(0, |world| {
-            // 2. Setup Camera
+
+            // Setup Camera
             // Positioned up and back, looking at the center
             world.set_camera(CameraMode::Camera3d {
                 position: Vec3::new(0.0, 6.0, 12.0),
                 target: Vec3::ZERO,
             });
 
-            // 3. Draw a Floor (to catch shadows/lighting)
-            world.draw3d.plane(
-                Vec3::new(0.0, -1.0, 0.0),
-                Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
-                20.0,
-                None,
-                Color::from(DARK_GRAY)
-            );
-
-            // 4. Draw the Central Cube
+            // Draw the Central Cube
             // We use White to best reflect the color of the light
             let time = ctx.time.elapsed_secs();
             world.draw3d.cube(
@@ -36,7 +28,7 @@ impl Scene for OrbitingLight {
                 Color::from(WHITE),
             );
 
-            // 5. Calculate Orbiting Light Position
+            // Calculate Orbiting Light Position
             let time = ctx.time.elapsed_secs();
             let orbit_radius = 6.0;
             let speed = 2.0;
@@ -55,7 +47,7 @@ impl Scene for OrbitingLight {
                 Color::from(YELLOW)
             );
 
-            // 7. Create the actual Point Light
+            // Create the actual Point Light
             // Parameters: position, color, intensity, radius (range). shadows disabled
             world.lights.point(
                 light_pos,
@@ -66,11 +58,6 @@ impl Scene for OrbitingLight {
             );
         });
 
-        // UI Layer: Show FPS
-        ctx.with_layer(1, |ui| {
-            ui.set_camera(CameraMode::default());
-            //ui.draw_fps(vec2(20.0, 20.0), Color::WHITE);
-        });
     }
 }
 
